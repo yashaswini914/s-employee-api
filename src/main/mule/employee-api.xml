@@ -1,19 +1,18 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
-http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
-http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
     <http:listener-config name="employee-api-httpListenerConfig">
-        <http:listener-connection
-    host="${http.host}"
-    port="${http.port}"/>
+        <http:listener-connection host="${http.host}" port="${http.port}"></http:listener-connection>
     </http:listener-config>
-    <apikit:config name="employee-api-config" api="resource::64bf67c7-37b5-45e5-a0ea-95fa6c0a7682:employee-api:1.0.0:raml:zip:employee-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
-    <configuration-properties doc:name="Configuration properties" doc:id="7e1d657c-a0f3-4edf-88cc-162af7a7fadb" file="properties/dev.yaml" />
-	<db:config name="employee-db-config" doc:name="Database Config" doc:id="acdb3ef7-b7ef-4977-aca4-603a062128f4" >
-		<db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.username}" password="${db.password}" database="${db.database}" />
-	</db:config>
-	<validation:config name="Validation_Config" doc:name="Validation Config" doc:id="0910ba13-845a-431e-92a7-d96d73e7b230" />
-	<flow name="employee-api-main">
+    <apikit:config api="resource::64bf67c7-37b5-45e5-a0ea-95fa6c0a7682:employee-api:1.0.0:raml:zip:employee-api.raml" httpStatusVarName="httpStatus" name="employee-api-config" outboundHeadersMapName="outboundHeaders"></apikit:config>
+    <configuration-properties doc:id="7e1d657c-a0f3-4edf-88cc-162af7a7fadb" doc:name="Configuration properties" file="properties/dev.yaml"></configuration-properties>
+    <db:config doc:id="acdb3ef7-b7ef-4977-aca4-603a062128f4" doc:name="Database Config" name="employee-db-config">
+        <db:my-sql-connection database="${db.database}" host="${db.host}" password="${db.password}" port="${db.port}" user="${db.username}"></db:my-sql-connection>
+        
+    </db:config>
+    <validation:config doc:id="0910ba13-845a-431e-92a7-d96d73e7b230" doc:name="Validation Config" name="Validation_Config"></validation:config>
+    <configuration
+    doc:id="2cef5592-8b5c-4693-b38c-917d845711d8"
+    defaultErrorHandler-ref="employee-global-error-handler"/>
+    <flow name="employee-api-main">
         <http:listener config-ref="employee-api-httpListenerConfig" path="/api/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
                 <http:headers>#[vars.outboundHeaders default {}]</http:headers>
@@ -23,7 +22,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 <http:headers>#[vars.outboundHeaders default {}]</http:headers>
             </http:error-response>
         </http:listener>
-        <apikit:router config-ref="employee-api-config" />
+        <apikit:router config-ref="employee-api-config"></apikit:router>
     </flow>
     <flow name="employee-api-console">
         <http:listener config-ref="employee-api-httpListenerConfig" path="/console/*">
@@ -35,95 +34,159 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 <http:headers>#[vars.outboundHeaders default {}]</http:headers>
             </http:error-response>
         </http:listener>
-        <apikit:console config-ref="employee-api-config" />
+        <apikit:console config-ref="employee-api-config"></apikit:console>
+        
     </flow>
-    <sub-flow name="update-employee-in-db-flow" doc:id="a79f2cf4-d119-4f5d-8c7c-f0da437c8422" >
-		<db:update doc:name="Update Employee Record" doc:id="b9c64b2f-3402-4229-93ad-7b5b1264e7b6" target="dbResponsePayload" config-ref="employee-db-config">
-			<db:sql ><![CDATA[UPDATE EMPLOYEE
+    <sub-flow name="update-employee-in-db-flow">
+
+    <!-- Check Employee Exists -->
+
+    <db:select
+        config-ref="employee-db-config"
+        doc:name="Check Employee Exists"
+        target="employeeExists">
+
+        <db:sql><![CDATA[
+SELECT EMPLOYEE_ID
+FROM EMPLOYEE
+WHERE EMPLOYEE_ID = :employeeId
+]]></db:sql>
+
+        <db:input-parameters><![CDATA[
+#[
+{
+    employeeId: vars.employeeId
+}
+]
+]]></db:input-parameters>
+
+    </db:select>
+
+    <validation:is-true
+        config-ref="Validation_Config"
+        expression="#[!isEmpty(vars.employeeExists)]"
+        message="Employee not found"/>
+
+    <!-- Update Employee -->
+
+    <db:update
+        config-ref="employee-db-config"
+        doc:name="Update Employee Record"
+        target="dbResponsePayload">
+
+        <db:sql><![CDATA[
+UPDATE EMPLOYEE
 SET
     NAME = :name,
     ADDRESS = :address,
     SALARY = :salary
-WHERE EMPLOYEE_ID = :employeeId]]></db:sql>
-			<db:parameter-types />
-			<db:input-parameters ><![CDATA[#[%dw 2.0
-output application/java
----
+WHERE EMPLOYEE_ID = :employeeId
+]]></db:sql>
+
+        <db:input-parameters><![CDATA[
+#[
 {
     employeeId: vars.employeeId,
     name: vars.updateEmployeeRequestPayload.name,
     address: vars.updateEmployeeRequestPayload.address,
     salary: vars.updateEmployeeRequestPayload.salary
-}]]]></db:input-parameters>
-		</db:update>
-		<validation:is-true
- expression="#[(vars.dbResponsePayload.affectedRows default 0) > 0]"
- message="Employee not found"/>
-		<logger level="INFO" doc:name="Log Update Response" doc:id="de2c182c-545a-4097-a45e-9777bd5e0e58" message='#[write(vars.dbResponsePayload,"application/json")]'/>
-		<ee:transform doc:name="Transform Message" doc:id="fef1ec75-c0d6-414b-af16-5e559182c820" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+}
+]
+]]></db:input-parameters>
+
+    </db:update>
+
+    <logger
+        level="INFO"
+        doc:name="Log Update Response"
+        message='#[write(vars.dbResponsePayload,"application/json")]'/>
+
+    <ee:transform doc:name="Transform Message">
+        <ee:message>
+            <ee:set-payload><![CDATA[
+%dw 2.0
 output application/json
 ---
 {
     status: "SUCCESS",
     message: "Employee updated successfully"
-}]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-	</sub-flow>
-	<flow name="put:\employees\(id):application\json:employee-api-config">
-		<set-variable value="#[attributes.uriParams.id]" doc:name="Set Employee Id Variable" doc:id="7462c1e9-5f49-46ec-8258-6ec43ea1781d" variableName="employeeId"/>
-		<set-variable value="#[payload]" doc:name="Set Update Employee Request Payload" doc:id="9838ce37-7703-4a58-88de-1a17313a7a1b" variableName="updateEmployeeRequestPayload"/>
-		<flow-ref doc:name="Update Employee In Database" doc:id="a9987f87-d565-4943-9f6a-72ef9435e485" name="update-employee-in-db-flow"/>
+}
+]]></ee:set-payload>
+        </ee:message>
+    </ee:transform>
+
+</sub-flow>
+    <flow name="put:\employees\(id):application\json:employee-api-config">
+        <set-variable doc:id="7462c1e9-5f49-46ec-8258-6ec43ea1781d" doc:name="Set Employee Id Variable" value="#[attributes.uriParams.id]" variableName="employeeId"></set-variable>
+        <set-variable doc:id="9838ce37-7703-4a58-88de-1a17313a7a1b" doc:name="Set Update Employee Request Payload" value="#[payload]" variableName="updateEmployeeRequestPayload"></set-variable>
+        <flow-ref doc:id="a9987f87-d565-4943-9f6a-72ef9435e485" doc:name="Update Employee In Database" name="update-employee-in-db-flow"></flow-ref>
     </flow>
-    <sub-flow name="delete-employee-from-db-flow" doc:id="66f65393-b4d3-4482-9c66-b90dd8a4a845" >
-		<db:delete doc:name="Delete Employee Record" doc:id="4a010bbc-fcf8-4b31-ac3c-f57c8fc1c118" config-ref="employee-db-config" target="dbResponsePayload">
-			<db:sql ><![CDATA[DELETE
+    <sub-flow doc:id="66f65393-b4d3-4482-9c66-b90dd8a4a845" name="delete-employee-from-db-flow">
+    <db:select
+    config-ref="employee-db-config"
+    target="employeeExists">
+
+    <db:sql><![CDATA[
+SELECT EMPLOYEE_ID
+FROM EMPLOYEE
+WHERE EMPLOYEE_ID = :employeeId
+]]></db:sql>
+
+    <db:input-parameters><![CDATA[
+#[{
+    employeeId: vars.employeeId
+}]
+]]></db:input-parameters>
+
+</db:select>
+    <validation:is-true
+    config-ref="Validation_Config"
+    expression="#[!isEmpty(vars.employeeExists)]"
+    message="Employee not found"/>
+        <db:delete config-ref="employee-db-config" doc:id="4a010bbc-fcf8-4b31-ac3c-f57c8fc1c118" doc:name="Delete Employee Record" target="dbResponsePayload">
+            <db:sql><![CDATA[DELETE
 FROM EMPLOYEE
 WHERE EMPLOYEE_ID = :employeeId]]></db:sql>
-			<db:input-parameters ><![CDATA[#[%dw 2.0
+            <db:input-parameters><![CDATA[#[%dw 2.0
 output application/java
 ---
 {
     employeeId: vars.employeeId
 }]]]></db:input-parameters>
-		</db:delete>
-		<validation:is-true
- expression="#[(vars.dbResponsePayload.affectedRows default 0) > 0]"
- message="Employee not found"/>
-		<logger level="INFO" doc:name="Log Delete Response" doc:id="d0d9d367-c090-41ff-b006-e471e0a0ccb7" message='#[write(vars.dbResponsePayload,"application/json")]'/>
-		<ee:transform doc:name="Transform Message" doc:id="ca4becfe-b879-4a98-a91e-c7b73c6da01a" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+        </db:delete>
+        <logger doc:id="1bc2cdfd-e5bd-4f74-8009-8dc797ab8650" doc:name="Log Delete Response" level="INFO" message="#[write(vars.dbResponsePayload,&quot;application/json&quot;)]"></logger>
+        
+        <ee:transform doc:id="ca4becfe-b879-4a98-a91e-c7b73c6da01a" doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 {
     status: "SUCCESS",
     message: "Employee deleted successfully"
 }]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-	</sub-flow>
-	<flow name="delete:\employees\(id):employee-api-config">
-		<set-variable value="#[attributes.uriParams.id]" doc:name="Set Employee Id Variable" doc:id="ce2309c4-7bb8-4f8f-b0a9-e935d649d5cc" variableName="employeeId"/>
-		<flow-ref doc:name="Delete Employee From Database" doc:id="55aa2c21-dbc1-4175-9ddb-ae5bfafa6f44" name="delete-employee-from-db-flow"/>
+            </ee:message>
+        </ee:transform>
+    </sub-flow>
+    <flow name="delete:\employees\(id):employee-api-config">
+        <set-variable doc:id="ce2309c4-7bb8-4f8f-b0a9-e935d649d5cc" doc:name="Set Employee Id Variable" value="#[attributes.uriParams.id]" variableName="employeeId"></set-variable>
+        <flow-ref doc:id="55aa2c21-dbc1-4175-9ddb-ae5bfafa6f44" doc:name="Delete Employee From Database" name="delete-employee-from-db-flow"></flow-ref>
     </flow>
-	<flow name="get:\employees:employee-api-config">
-		<flow-ref doc:name="Flow Reference" doc:id="e26fecdf-00b0-4b27-b83e-024598881e01" name="fetch-employee-details-from-db-flow"/>
+    <flow name="get:\employees:employee-api-config">
+        <flow-ref doc:id="e26fecdf-00b0-4b27-b83e-024598881e01" doc:name="Flow Reference" name="fetch-employee-details-from-db-flow"></flow-ref>
     </flow>
-    <sub-flow name="fetch-employee-details-from-db-flow" doc:id="172c2c3d-44ed-4794-9d87-4c4e1f2c4936" >
-		<db:select doc:name="Select" doc:id="da121fd8-dae5-4681-95ec-7d2e873065e2" config-ref="employee-db-config" target="dbResponsePayload">
-			<db:sql ><![CDATA[SELECT
+    <sub-flow doc:id="172c2c3d-44ed-4794-9d87-4c4e1f2c4936" name="fetch-employee-details-from-db-flow">
+        <db:select config-ref="employee-db-config" doc:id="da121fd8-dae5-4681-95ec-7d2e873065e2" doc:name="Select" target="dbResponsePayload">
+            <db:sql><![CDATA[SELECT
     EMPLOYEE_ID,
     NAME,
     ADDRESS,
     SALARY
 FROM EMPLOYEE;]]></db:sql>
-		</db:select>
-		<ee:transform doc:name="Transform Message" doc:id="93dcba4e-0f51-4051-850d-5148070e3008" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+        </db:select>
+        <ee:transform doc:id="93dcba4e-0f51-4051-850d-5148070e3008" doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 vars.dbResponsePayload map (employee) -> {
@@ -132,52 +195,77 @@ vars.dbResponsePayload map (employee) -> {
     address: employee.ADDRESS,
     salary: employee.SALARY
 }]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-	</sub-flow>
-	<flow name="get:\employees\(id):employee-api-config">
-
-		<set-variable value="#[attributes.uriParams.id]" doc:name="Set Employee Id Variable" doc:id="e33c589d-bcef-480c-9d6b-daaf4809613d" variableName="employeeId"/>
-		<flow-ref doc:name="Fetch Employee By Id" doc:id="e8048206-bde1-4075-95ec-1b4b3b34fece" name="fetch-employee-by-id-from-db-flow"/>
+            </ee:message>
+        </ee:transform>
+    </sub-flow>
+    <flow name="get:\employees\(id):employee-api-config">
+        <set-variable doc:id="e33c589d-bcef-480c-9d6b-daaf4809613d" doc:name="Set Employee Id Variable" value="#[attributes.uriParams.id]" variableName="employeeId"></set-variable>
+        <flow-ref doc:id="e8048206-bde1-4075-95ec-1b4b3b34fece" doc:name="Fetch Employee By Id" name="fetch-employee-by-id-from-db-flow"></flow-ref>
     </flow>
-	<sub-flow name="fetch-employee-by-id-from-db-flow" doc:id="e6c4b64a-1a7f-409c-b520-14d3266276f0" >
-		<db:select doc:name="Fetch Employee By Id From Database" doc:id="1c23cc0c-ca51-4d05-ab61-fb662c854e4c" config-ref="employee-db-config" target="dbResponsePayload" transactionalAction="NOT_SUPPORTED">
-			<repeatable-in-memory-iterable />
-			<db:sql ><![CDATA[SELECT
+    <sub-flow doc:id="e6c4b64a-1a7f-409c-b520-14d3266276f0" name="fetch-employee-by-id-from-db-flow">
+        <db:select config-ref="employee-db-config" doc:id="1c23cc0c-ca51-4d05-ab61-fb662c854e4c" doc:name="Fetch Employee By Id From Database" target="dbResponsePayload" transactionalAction="NOT_SUPPORTED">
+            <repeatable-in-memory-iterable></repeatable-in-memory-iterable>
+            <db:sql><![CDATA[SELECT
     EMPLOYEE_ID AS employeeId,
     NAME AS name,
     ADDRESS AS address,
     SALARY AS salary
 FROM EMPLOYEE
 WHERE EMPLOYEE_ID = :employeeId]]></db:sql>
-			<db:input-parameters ><![CDATA[#[%dw 2.0
+            <db:input-parameters><![CDATA[#[%dw 2.0
 output application/java
 ---
 {
     employeeId: vars.employeeId
 }]]]></db:input-parameters>
-		</db:select>
-		<logger level="INFO" doc:name="Log DB Response" doc:id="f77ef597-333f-4234-9dd5-ddd5b7b66185" message='#[write(vars.dbResponsePayload,"application/json")]'/>
-		<validation:is-true doc:name="Validation → Is True" doc:id="2a0b5677-2610-416a-82e8-ebefe285eb74" config-ref="Validation_Config" expression="#[!isEmpty(vars.dbResponsePayload)]" message="Employee not found"/>
-		<ee:transform doc:name="Transform Message" doc:id="f99cbe89-0db7-4373-a6e3-ad0bed0f8811" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+        </db:select>
+        <logger doc:id="f77ef597-333f-4234-9dd5-ddd5b7b66185" doc:name="Log DB Response" level="INFO" message="#[write(vars.dbResponsePayload,&quot;application/json&quot;)]"></logger>
+<validation:is-true
+    config-ref="Validation_Config"
+    doc:id="cf808749-4111-40b9-ad97-44da9966e539"
+    doc:name="Validate Employee Exists"
+    expression="#[!isEmpty(vars.dbResponsePayload)]"
+    message="Employee not found">
+</validation:is-true>
+        <ee:transform doc:id="f99cbe89-0db7-4373-a6e3-ad0bed0f8811" doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 vars.dbResponsePayload[0]]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-	</sub-flow>
-	<flow name="employee-apiFlow" doc:id="daf50004-973a-466a-8dc8-8db0b97376b3" >
-		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="d9c920bc-1a12-4a4f-a6dc-e2b258060312" />
-	</flow>
-	<flow name="post:\employees:application\json:employee-api-config">
-		<set-variable value="#[payload]" doc:name="Set Create Employee Request Payload" doc:id="bdecceda-1247-4429-acce-b75538070672" variableName="createEmployeeRequestPayload"/>
-		<flow-ref doc:name="Create Employee In Database" doc:id="0aec848f-6255-4625-9a70-3a782f3592e8" name="create-employee-in-db-flow"/>
+            </ee:message>
+        </ee:transform>
+    </sub-flow>
+    <flow doc:id="daf50004-973a-466a-8dc8-8db0b97376b3" name="employee-apiFlow">
+        <set-payload doc:id="d9c920bc-1a12-4a4f-a6dc-e2b258060312" doc:name="Set Payload" value="#[payload]"></set-payload>
     </flow>
-	<sub-flow name="create-employee-in-db-flow" doc:id="bef44794-ea6f-4251-bbb1-873c1c8ee9f8" >
-		<db:insert doc:name="Insert Employee Record" doc:id="a2a66677-c7a4-4929-8be4-9c173da05dd8" config-ref="employee-db-config" target="dbResponsePayload">
-			<db:sql ><![CDATA[INSERT INTO EMPLOYEE
+    <flow name="post:\employees:application\json:employee-api-config">
+        <set-variable doc:id="bdecceda-1247-4429-acce-b75538070672" doc:name="Set Create Employee Request Payload" value="#[payload]" variableName="createEmployeeRequestPayload"></set-variable>
+        <flow-ref doc:id="0aec848f-6255-4625-9a70-3a782f3592e8" doc:name="Create Employee In Database" name="create-employee-in-db-flow"></flow-ref>
+    </flow>
+    <sub-flow doc:id="e4b25126-0f3a-4614-94af-7058ce5ca484" name="create-employee-in-db-flow">
+
+    <validation:is-true
+        config-ref="Validation_Config"
+        expression="#[!isEmpty(vars.createEmployeeRequestPayload.name default '')]"
+        message="Employee name is mandatory"/>
+        
+        <validation:is-true
+    config-ref="Validation_Config"
+    expression="#[!isEmpty(vars.createEmployeeRequestPayload.address default '')]"
+    message="Employee address is mandatory"/>
+
+
+    <validation:is-not-null
+        config-ref="Validation_Config"
+        value="#[vars.createEmployeeRequestPayload.salary]"
+        message="Employee salary is mandatory"/>
+
+    <db:insert config-ref="employee-db-config"
+               doc:id="335d8c15-c8e6-44f2-8d79-5390fd08b69a"
+               doc:name="Insert Employee Record"
+               target="dbResponsePayload">
+            <db:sql><![CDATA[INSERT INTO EMPLOYEE
 (
     NAME,
     ADDRESS,
@@ -189,8 +277,8 @@ VALUES
     :address,
     :salary
 )]]></db:sql>
-			<db:parameter-types />
-			<db:input-parameters ><![CDATA[#[%dw 2.0
+            <db:parameter-types></db:parameter-types>
+            <db:input-parameters><![CDATA[#[%dw 2.0
 output application/java
 ---
 {
@@ -198,25 +286,19 @@ output application/java
     address: vars.createEmployeeRequestPayload.address,
     salary: vars.createEmployeeRequestPayload.salary
 }]]]></db:input-parameters>
-		</db:insert>
-		<validation:is-not-null
- value="#[payload.name]"
- message="Employee name is mandatory"/>
-
-<validation:is-not-null
- value="#[payload.salary]"
- message="Employee salary is mandatory"/>
-		<logger level="INFO" doc:name="Log Insert Response" doc:id="9db181dc-2742-4b39-829d-dc5b12f41b37" message='#[write(vars.dbResponsePayload,"application/json")]'/>
-		<ee:transform doc:name="Transform Message" doc:id="67da1786-cde7-40dd-81d9-0e9d9c60805a" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+        </db:insert>
+        <logger doc:id="9db181dc-2742-4b39-829d-dc5b12f41b37" doc:name="Log Insert Response" level="INFO" message="#[write(vars.dbResponsePayload,&quot;application/json&quot;)]"></logger>
+        <ee:transform doc:id="67da1786-cde7-40dd-81d9-0e9d9c60805a" doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 {
     status: "SUCCESS",
     message: "Employee created successfully"
 }]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-	</sub-flow>
+            </ee:message>
+        </ee:transform>
+    </sub-flow>
+  
 </mule>

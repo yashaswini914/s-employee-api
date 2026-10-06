@@ -30,7 +30,7 @@ output application/json
                 </ee:message>
 
                 <ee:variables>
-                    <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    <ee:set-variable variableName="httpStatus">400</ee:set-variable>
                 </ee:variables>
 
             </ee:transform>
@@ -49,7 +49,7 @@ output application/json
 {
     status: "ERROR",
     errorCode: "EMP-400",
-    message: "Bad Request",
+    message: error.description,
     correlationId: correlationId,
     timestamp: (now() as String),
     apiName: p("app.name")
