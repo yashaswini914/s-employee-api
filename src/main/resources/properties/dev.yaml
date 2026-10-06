@@ -1,0 +1,14 @@
+http:
+  host: "0.0.0.0"
+  port: "8081"
+
+db:
+  host: "sql12.freesqldatabase.com"
+  port: "3306"
+  database: "sql12838179"
+  username: "sql12838179"
+  password: "WCrXBRfruP"
+  
+app:
+  name: "s-employee-api"
+  version: "1.0.0"

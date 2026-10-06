@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+      http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <error-handler name="employee-global-error-handler">
+
+        <!-- Employee Not Found -->
+        <on-error-propagate type="VALIDATION:*" logException="true">
+
+            <ee:transform>
+                <ee:message>
+                    <ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+    status: "ERROR",
+    errorCode: "EMP-404",
+    message: error.description,
+    correlationId: correlationId,
+    timestamp: (now() as String),
+    apiName: p("app.name")
+}
+]]></ee:set-payload>
+                </ee:message>
+
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                </ee:variables>
+
+            </ee:transform>
+
+        </on-error-propagate>
+
+        <!-- Invalid Request -->
+        <on-error-propagate type="APIKIT:BAD_REQUEST">
+
+            <ee:transform>
+                <ee:message>
+                    <ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+    status: "ERROR",
+    errorCode: "EMP-400",
+    message: "Bad Request",
+    correlationId: correlationId,
+    timestamp: (now() as String),
+    apiName: p("app.name")
+}
+]]></ee:set-payload>
+                </ee:message>
+
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                </ee:variables>
+
+            </ee:transform>
+
+        </on-error-propagate>
+
+        <!-- Wrong URL -->
+        <on-error-propagate type="APIKIT:NOT_FOUND">
+
+            <ee:transform>
+                <ee:message>
+                    <ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+    status: "ERROR",
+    errorCode: "EMP-404",
+    message: "Resource not found",
+    correlationId: correlationId,
+    timestamp: (now() as String),
+    apiName: p("app.name")
+}
+]]></ee:set-payload>
+                </ee:message>
+
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                </ee:variables>
+
+            </ee:transform>
+
+        </on-error-propagate>
+
+        <!-- Wrong HTTP Method -->
+        <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+
+            <ee:transform>
+                <ee:message>
+                    <ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+    status: "ERROR",
+    errorCode: "EMP-405",
+    message: "Method not allowed",
+    correlationId: correlationId,
+    timestamp: (now() as String),
+    apiName: p("app.name")
+}
+]]></ee:set-payload>
+                </ee:message>
+
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                </ee:variables>
+
+            </ee:transform>
+
+        </on-error-propagate>
+
+        <!-- Database Down -->
+        <on-error-propagate type="DB:CONNECTIVITY">
+
+            <ee:transform>
+                <ee:message>
+                    <ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+    status: "ERROR",
+    errorCode: "EMP-503",
+    message: "Database unavailable",
+    correlationId: correlationId,
+    timestamp: (now() as String),
+    apiName: p("app.name")
+}
+]]></ee:set-payload>
+                </ee:message>
+
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus">503</ee:set-variable>
+                </ee:variables>
+
+            </ee:transform>
+
+        </on-error-propagate>
+
+        <!-- SQL Issues -->
+        <on-error-propagate type="DB:QUERY_EXECUTION">
+
+            <ee:transform>
+                <ee:message>
+                    <ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+    status: "ERROR",
+    errorCode: "EMP-500",
+    message: "Database query execution failed",
+    correlationId: correlationId,
+    timestamp: (now() as String),
+    apiName: p("app.name")
+}
+]]></ee:set-payload>
+                </ee:message>
+
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus">500</ee:set-variable>
+                </ee:variables>
+
+            </ee:transform>
+
+        </on-error-propagate>
+
+        <!-- Catch-All -->
+        <on-error-propagate type="ANY" logException="true">
+
+            <ee:transform>
+                <ee:message>
+                    <ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+    status: "ERROR",
+    errorCode: "EMP-500",
+    message: "Internal Server Error",
+    correlationId: correlationId,
+    timestamp: (now() as String),
+    apiName: p("app.name")
+}
+]]></ee:set-payload>
+                </ee:message>
+
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus">500</ee:set-variable>
+                </ee:variables>
+
+            </ee:transform>
+
+        </on-error-propagate>
+
+    </error-handler>
+
+</mule>
