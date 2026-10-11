@@ -1,0 +1,554 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns:db="http://www.mulesoft.org/schema/mule/db"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd 
+        http://www.mulesoft.org/schema/mule/core
+        http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit
+        http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools
+        http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+        http://www.mulesoft.org/schema/mule/db
+        http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+        http://www.mulesoft.org/schema/mule/mule-apikit
+        http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd">
+
+    <munit:config name="employee-all-tests-config"/>
+
+    <!-- ============================================= -->
+    <!-- API ENTRY FLOWS -->
+    <!-- ============================================= -->
+
+    <munit:test name="test-employee-api-main">
+        <munit:behavior>
+            <munit-tools:mock-when processor="apikit:router">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Route Employee API Request"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[{status: 'OK'}]"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <flow-ref name="employee-api-main"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[payload.status]"
+                is="#[MunitTools::equalTo('OK')]"/>
+        </munit:validation>
+    </munit:test>
+
+    <munit:test name="test-employee-api-console">
+        <munit:behavior>
+            <munit-tools:mock-when processor="apikit:console">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Display Employee API Console"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[{status: 'OK'}]"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <flow-ref name="employee-api-console"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[payload.status]"
+                is="#[MunitTools::equalTo('OK')]"/>
+        </munit:validation>
+    </munit:test>
+
+    <!-- ============================================= -->
+    <!-- EMPLOYEE ROUTES -->
+    <!-- ============================================= -->
+
+    <munit:test name="test-create-employee-route">
+        <munit:behavior>
+            <munit-tools:mock-when processor="flow-ref">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Create Employee In Database"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[{status: 'OK'}]"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <munit:set-event>
+                <munit:payload
+                    value="#[{employeeId: 'E1', name: 'Alice', address: 'Road', salary: 100}]"/>
+            </munit:set-event>
+            <flow-ref name="post:\employees:application\json:employee-api-config"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[vars.createEmployeeRequestPayload.employeeId]"
+                is="#[MunitTools::equalTo('E1')]"/>
+        </munit:validation>
+    </munit:test>
+
+    <munit:test name="test-delete-employee-route">
+        <munit:behavior>
+            <munit-tools:mock-when processor="flow-ref">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Delete Employee From Database"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[{status: 'OK'}]"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <munit:set-event>
+                <munit:attributes
+                    value="#[{uriParams: {id: 'E1'}}]"/>
+            </munit:set-event>
+            <flow-ref name="delete:\employees\(id):employee-api-config"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[vars.employeeId]"
+                is="#[MunitTools::equalTo('E1')]"/>
+        </munit:validation>
+    </munit:test>
+
+    <munit:test name="test-get-all-employees-route">
+        <munit:behavior>
+            <munit-tools:mock-when processor="flow-ref">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Fetch All Employees From Database"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[[]]"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <flow-ref name="get:\employees:employee-api-config"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:verify-call
+                processor="flow-ref"
+                times="1">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Fetch All Employees From Database"/>
+                </munit-tools:with-attributes>
+            </munit-tools:verify-call>
+        </munit:validation>
+    </munit:test>
+
+    <munit:test name="test-get-employee-by-id-route">
+        <munit:behavior>
+            <munit-tools:mock-when processor="flow-ref">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Fetch Employee By Id"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[{employeeId: 'E1'}]"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <munit:set-event>
+                <munit:attributes
+                    value="#[{uriParams: {id: 'E1'}}]"/>
+            </munit:set-event>
+            <flow-ref name="get:\employees\(id):employee-api-config"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[vars.employeeId]"
+                is="#[MunitTools::equalTo('E1')]"/>
+        </munit:validation>
+    </munit:test>
+
+    <munit:test name="test-update-employee-route">
+        <munit:behavior>
+            <munit-tools:mock-when processor="flow-ref">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Update Employee In Database"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[{status: 'OK'}]"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <munit:set-event>
+                <munit:payload
+                    value="#[{name: 'Alice', address: 'Road', salary: 100}]"/>
+                <munit:attributes
+                    value="#[{uriParams: {id: 'E1'}}]"/>
+            </munit:set-event>
+            <flow-ref name="put:\employees\(id):application\json:employee-api-config"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[vars.employeeId]"
+                is="#[MunitTools::equalTo('E1')]"/>
+            <munit-tools:assert-that
+                expression="#[vars.updateEmployeeRequestPayload.name]"
+                is="#[MunitTools::equalTo('Alice')]"/>
+        </munit:validation>
+    </munit:test>
+
+    <!-- ============================================= -->
+    <!-- CREATE EMPLOYEE VALIDATION -->
+    <!-- ============================================= -->
+
+    <munit:test name="test-valid-create-request">
+        <munit:execution>
+            <set-variable
+                variableName="createEmployeeRequestPayload"
+                value="#[{employeeId: 'E1', name: 'Alice', address: 'Road', salary: 100}]"/>
+            <flow-ref name="validate-create-employee-request-flow"/>
+        </munit:execution>
+    </munit:test>
+
+    <munit:test
+        name="test-missing-employee-id"
+        expectedErrorType="VALIDATION:INVALID_BOOLEAN">
+        <munit:execution>
+            <set-variable
+                variableName="createEmployeeRequestPayload"
+                value="#[{name: 'Alice', address: 'Road', salary: 100}]"/>
+            <flow-ref name="validate-create-employee-request-flow"/>
+        </munit:execution>
+    </munit:test>
+
+    <munit:test
+        name="test-missing-employee-name"
+        expectedErrorType="VALIDATION:INVALID_BOOLEAN">
+        <munit:execution>
+            <set-variable
+                variableName="createEmployeeRequestPayload"
+                value="#[{employeeId: 'E1', address: 'Road', salary: 100}]"/>
+            <flow-ref name="validate-create-employee-request-flow"/>
+        </munit:execution>
+    </munit:test>
+
+    <munit:test
+        name="test-missing-employee-address"
+        expectedErrorType="VALIDATION:INVALID_BOOLEAN">
+        <munit:execution>
+            <set-variable
+                variableName="createEmployeeRequestPayload"
+                value="#[{employeeId: 'E1', name: 'Alice', salary: 100}]"/>
+            <flow-ref name="validate-create-employee-request-flow"/>
+        </munit:execution>
+    </munit:test>
+
+    <!-- ============================================= -->
+    <!-- DATABASE SUBFLOWS -->
+    <!-- ============================================= -->
+
+    <munit:test name="test-create-employee-db">
+        <munit:behavior>
+            <munit-tools:mock-when processor="db:insert">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Insert Employee Record"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[{affectedRows: 1}]"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <set-variable
+                variableName="createEmployeeRequestPayload"
+                value="#[{employeeId: 'E1', name: 'Alice', address: 'Road', salary: 100}]"/>
+            <flow-ref name="create-employee-in-db-flow"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[payload.message]"
+                is="#[MunitTools::equalTo('Employee created successfully')]"/>
+        </munit:validation>
+    </munit:test>
+
+    <munit:test name="test-update-employee-db">
+        <munit:behavior>
+            <munit-tools:mock-when processor="db:select">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Check Employee Exists Before Update"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[[{EMPLOYEE_ID: 'E1'}]]"/>
+                    <munit-tools:variables>
+                        <munit-tools:variable
+                            key="employeeExists"
+                            value="#[[{EMPLOYEE_ID: 'E1'}]]"/>
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+
+            <munit-tools:mock-when processor="db:update">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Update Employee Record"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[{affectedRows: 1}]"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <set-variable
+                variableName="employeeId"
+                value="#['E1']"/>
+            <set-variable
+                variableName="updateEmployeeRequestPayload"
+                value="#[{name: 'Alice', address: 'Road', salary: 100}]"/>
+            <flow-ref name="update-employee-in-db-flow"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[payload.message]"
+                is="#[MunitTools::equalTo('Employee updated successfully')]"/>
+        </munit:validation>
+    </munit:test>
+
+    <munit:test name="test-delete-employee-db">
+        <munit:behavior>
+            <munit-tools:mock-when processor="db:select">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Check Employee Exists Before Delete"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[[{EMPLOYEE_ID: 'E1'}]]"/>
+                    <munit-tools:variables>
+                        <munit-tools:variable
+                            key="employeeExists"
+                            value="#[[{EMPLOYEE_ID: 'E1'}]]"/>
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+
+            <munit-tools:mock-when processor="db:delete">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Delete Employee Record"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[{affectedRows: 1}]"/>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <set-variable
+                variableName="employeeId"
+                value="#['E1']"/>
+            <flow-ref name="delete-employee-from-db-flow"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[payload.message]"
+                is="#[MunitTools::equalTo('Employee deleted successfully')]"/>
+        </munit:validation>
+    </munit:test>
+
+    <munit:test name="test-get-all-employees-db">
+        <munit:behavior>
+            <munit-tools:mock-when processor="db:select">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Fetch All Employee Records"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[[{EMPLOYEE_ID: 'E1', NAME: 'Alice', ADDRESS: 'Road', SALARY: 100}]]"/>
+                    <munit-tools:variables>
+                        <munit-tools:variable
+                            key="dbResponsePayload"
+                            value="#[[{EMPLOYEE_ID: 'E1', NAME: 'Alice', ADDRESS: 'Road', SALARY: 100}]]"/>
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <flow-ref name="fetch-employee-details-from-db-flow"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[sizeOf(payload)]"
+                is="#[MunitTools::equalTo(1)]"/>
+        </munit:validation>
+    </munit:test>
+
+    <munit:test name="test-get-employee-by-id-db">
+        <munit:behavior>
+            <munit-tools:mock-when processor="db:select">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Fetch Employee By Id From Database"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[[{employeeId: 'E1', name: 'Alice', address: 'Road', salary: 100}]]"/>
+                    <munit-tools:variables>
+                        <munit-tools:variable
+                            key="dbResponsePayload"
+                            value="#[[{employeeId: 'E1', name: 'Alice', address: 'Road', salary: 100}]]"/>
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <set-variable
+                variableName="employeeId"
+                value="#['E1']"/>
+            <flow-ref name="fetch-employee-by-id-from-db-flow"/>
+        </munit:execution>
+        <munit:validation>
+            <munit-tools:assert-that
+                expression="#[payload.employeeId]"
+                is="#[MunitTools::equalTo('E1')]"/>
+        </munit:validation>
+    </munit:test>
+
+    <!-- ============================================= -->
+    <!-- NEGATIVE DATABASE TESTS -->
+    <!-- ============================================= -->
+
+    <munit:test
+        name="test-update-employee-not-found"
+        expectedErrorType="VALIDATION:INVALID_BOOLEAN">
+        <munit:behavior>
+            <munit-tools:mock-when processor="db:select">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Check Employee Exists Before Update"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload value="#[[]]"/>
+                    <munit-tools:variables>
+                        <munit-tools:variable
+                            key="employeeExists"
+                            value="#[[]]"/>
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <set-variable variableName="employeeId" value="#['MISSING']"/>
+            <flow-ref name="update-employee-in-db-flow"/>
+        </munit:execution>
+    </munit:test>
+
+    <munit:test
+        name="test-delete-employee-not-found"
+        expectedErrorType="VALIDATION:INVALID_BOOLEAN">
+        <munit:behavior>
+            <munit-tools:mock-when processor="db:select">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Check Employee Exists Before Delete"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload value="#[[]]"/>
+                    <munit-tools:variables>
+                        <munit-tools:variable
+                            key="employeeExists"
+                            value="#[[]]"/>
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <set-variable variableName="employeeId" value="#['MISSING']"/>
+            <flow-ref name="delete-employee-from-db-flow"/>
+        </munit:execution>
+    </munit:test>
+
+    <munit:test
+        name="test-get-employee-by-id-not-found"
+        expectedErrorType="VALIDATION:INVALID_BOOLEAN">
+        <munit:behavior>
+            <munit-tools:mock-when processor="db:select">
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="Fetch Employee By Id From Database"/>
+                </munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload value="#[[]]"/>
+                    <munit-tools:variables>
+                        <munit-tools:variable
+                            key="dbResponsePayload"
+                            value="#[[]]"/>
+                    </munit-tools:variables>
+                </munit-tools:then-return>
+            </munit-tools:mock-when>
+        </munit:behavior>
+        <munit:execution>
+            <set-variable variableName="employeeId" value="#['MISSING']"/>
+            <flow-ref name="fetch-employee-by-id-from-db-flow"/>
+        </munit:execution>
+    </munit:test>
+
+    <!-- ============================================= -->
+    <!-- CREATE REQUEST ERROR -->
+    <!-- ============================================= -->
+
+    <munit:test
+        name="test-create-employee-validation-error"
+        expectedErrorType="VALIDATION:INVALID_BOOLEAN">
+        <munit:execution>
+            <munit:set-event>
+                <munit:payload
+                    value="#[{employeeId: 'E1', address: 'Road', salary: 100}]"/>
+            </munit:set-event>
+            <flow-ref name="post:\employees:application\json:employee-api-config"/>
+        </munit:execution>
+    </munit:test>
+
+</mule>
+

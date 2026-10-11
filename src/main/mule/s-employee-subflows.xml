@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xmlns:db="http://www.mulesoft.org/schema/mule/db"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+      http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+      http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+      http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+      
+	<sub-flow name="update-employee-in-db-flow" doc:id="2b9c85d2-e7dd-43a1-b548-94a16f42cf08" >
+		<logger level="INFO" doc:name="Log Update Employee DB Start" doc:id="b09b28ed-4216-43a8-bd57-12fc62eb5790" message="Update employee database operation started" />
+		<db:select doc:name="Check Employee Exists Before Update" doc:id="01c96986-ab54-4cbb-b10e-7e732d85fe2f" config-ref="employee-db-config" target="employeeExists" >
+			<db:sql ><![CDATA[
+SELECT EMPLOYEE_ID
+FROM EMPLOYEE
+WHERE EMPLOYEE_ID = :employeeId
+            ]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+                employeeId: vars.employeeId
+            }]]]></db:input-parameters>
+		</db:select>
+		<validation:is-true doc:name="Validate Employee Exists For Update" doc:id="f878bf9a-fbf9-4c7d-b5c2-726660f66a3d" config-ref="Validation_Config" expression="#[!isEmpty(vars.employeeExists)]" message="Employee not found" />
+		<db:update doc:name="Update Employee Record" doc:id="bcddfdde-11c3-4839-9ad1-b064947d3ba2" config-ref="employee-db-config" target="dbResponsePayload" >
+			<db:sql ><![CDATA[
+UPDATE EMPLOYEE
+SET
+    NAME = :name,
+    ADDRESS = :address,
+    SALARY = :salary
+WHERE EMPLOYEE_ID = :employeeId
+            ]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+                employeeId: vars.employeeId,
+                name: vars.updateEmployeeRequestPayload.name,
+                address: vars.updateEmployeeRequestPayload.address,
+                salary: vars.updateEmployeeRequestPayload.salary
+            }]]]></db:input-parameters>
+		</db:update>
+		<logger level="INFO" doc:name="Log Update Database Response" doc:id="a718cb07-6132-47a0-9434-e016a43d840b" message="Employee update database response received" />
+		<ee:transform doc:name="Build Employee Update Success Response" doc:id="77a9a414-eb16-4641-9827-8262327d8739" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+    status: "SUCCESS",
+    message: "Employee updated successfully"
+}
+                ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log Update Employee DB End" doc:id="ff9d878a-c4ec-42fa-b064-f72afc489289" message="Update employee database operation completed" />
+	</sub-flow>
+	<sub-flow name="delete-employee-from-db-flow" doc:id="9b06f530-66ee-4bb6-9f2b-7c957ab9c918" >
+		<logger level="INFO" doc:name="Log Delete Employee DB Start" doc:id="31a1718d-1409-43c4-bd8d-b049a1edbad0" message="Delete employee database operation started" />
+		<db:select doc:name="Check Employee Exists Before Delete" doc:id="aaca72e7-b2dc-45c1-ae61-5c96ba406346" config-ref="employee-db-config" target="employeeExists" >
+			<db:sql ><![CDATA[
+SELECT EMPLOYEE_ID
+FROM EMPLOYEE
+WHERE EMPLOYEE_ID = :employeeId
+            ]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+                employeeId: vars.employeeId
+            }]]]></db:input-parameters>
+		</db:select>
+		<validation:is-true doc:name="Validate Employee Exists For Delete" doc:id="cb5ddbca-6d38-455c-8d5d-047d6595ebd0" config-ref="Validation_Config" expression="#[!isEmpty(vars.employeeExists)]" message="Employee not found" />
+		<db:delete doc:name="Delete Employee Record" doc:id="e4918c3d-ed8e-4a86-9c13-a557b70f91a2" config-ref="employee-db-config" target="dbResponsePayload" >
+			<db:sql ><![CDATA[
+DELETE
+FROM EMPLOYEE
+WHERE EMPLOYEE_ID = :employeeId
+            ]]></db:sql>
+			<db:input-parameters ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    employeeId: vars.employeeId
+}]]]></db:input-parameters>
+		</db:delete>
+		<logger level="INFO" doc:name="Log Delete Database Response" doc:id="c7f0ab8c-760b-4881-b3b0-fe5f93b07749" message="Employee delete database response received" />
+		<ee:transform doc:name="Build Employee Delete Success Response" doc:id="ceb4dc88-8e01-40b7-a579-b36bb77a848e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+    status: "SUCCESS",
+    message: "Employee deleted successfully"
+}
+                ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log Delete Employee DB End" doc:id="e2002550-9f93-4cd9-9465-3dc3304aaf57" message="Delete employee database operation completed" />
+	</sub-flow>
+	<sub-flow name="fetch-employee-details-from-db-flow" doc:id="bcd30d2d-02d2-44ab-bedc-e8f2e713af59" >
+		<logger level="INFO" doc:name="Log Fetch All Employees DB Start" doc:id="e1528956-9832-432d-a611-9a41d56dd897" message="Fetch all employees database operation started" />
+		<db:select doc:name="Fetch All Employee Records" doc:id="a78b3aa9-4f4a-41a0-8db4-3eaa98f37bb2" config-ref="employee-db-config" target="dbResponsePayload" >
+			<db:sql ><![CDATA[
+SELECT
+    EMPLOYEE_ID,
+    NAME,
+    ADDRESS,
+    SALARY
+FROM EMPLOYEE;
+            ]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Map All Employee Records To JSON" doc:id="544fa288-0b75-4c71-bbe7-d75c0dca4061" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[
+%dw 2.0
+output application/json
+---
+vars.dbResponsePayload map (employee) -> {
+    employeeId: employee.EMPLOYEE_ID,
+    name: employee.NAME,
+    address: employee.ADDRESS,
+    salary: employee.SALARY
+}
+                ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log Fetch All Employees DB End" doc:id="55310a0f-ade7-4ad5-9076-986dead85009" message="Fetch all employees database operation completed" />
+	</sub-flow>
+	<sub-flow name="fetch-employee-by-id-from-db-flow" doc:id="013112b5-128f-4fb5-b426-06f272cd86bc" >
+		<logger level="INFO" doc:name="Log Fetch Employee By ID DB Start" doc:id="e2dbeff0-9484-4626-965e-9680e31d0d07" message="Fetch employee by ID database operation started" />
+		<db:select doc:name="Fetch Employee By Id From Database" doc:id="edcdf2f0-12b1-478a-a950-936aa64c5212" config-ref="employee-db-config" transactionalAction="NOT_SUPPORTED" target="dbResponsePayload" >
+			<repeatable-in-memory-iterable />
+			<db:sql ><![CDATA[
+SELECT
+    EMPLOYEE_ID AS employeeId,
+    NAME AS name,
+    ADDRESS AS address,
+    SALARY AS salary
+FROM EMPLOYEE
+WHERE EMPLOYEE_ID = :employeeId
+            ]]></db:sql>
+			<db:input-parameters ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    employeeId: vars.employeeId
+}]]]></db:input-parameters>
+		</db:select>
+		<logger level="INFO" doc:name="Log Fetch Employee By ID DB Response" doc:id="0f6dda54-9273-430c-b1c3-b8c0bbf80fd4" message="Employee by ID database response received" />
+		<validation:is-true doc:name="Validate Employee Exists" doc:id="fea88f22-e0ab-4aa7-abbe-034d0189e2bb" config-ref="Validation_Config" expression="#[!isEmpty(vars.dbResponsePayload)]" message="Employee not found" />
+		<ee:transform doc:name="Build Employee By ID Response" doc:id="2d36ba8d-e3e4-4912-af14-56bb2ada3d31" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[
+%dw 2.0
+output application/json
+---
+vars.dbResponsePayload[0]
+                ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log Fetch Employee By ID DB End" doc:id="ff7b809f-1d2b-4c06-8ce7-88e9e7a10d01" message="Fetch employee by ID database operation completed" />
+	</sub-flow>
+	<sub-flow name="create-employee-in-db-flow" doc:id="1ee49471-15f7-47da-a740-9c853fe56528" >
+		<logger level="INFO" doc:name="Log Create Employee DB Start" doc:id="188f3d3c-63c4-4402-9d9a-bd687216b6ff" message="Create employee database operation started" />
+		<flow-ref doc:name="Validate Create Employee Request" doc:id="36a40f26-16ee-4e4c-b0f5-19a1bac2482f" name="validate-create-employee-request-flow" />
+		<db:insert doc:name="Insert Employee Record" doc:id="70945c70-0df9-4208-8a1a-5267a23c343a" config-ref="employee-db-config" target="dbResponsePayload" >
+			<db:sql ><![CDATA[
+INSERT INTO EMPLOYEE
+(
+    EMPLOYEE_ID,
+    NAME,
+    ADDRESS,
+    SALARY
+)
+VALUES
+(
+    :employeeId,
+    :name,
+    :address,
+    :salary
+)
+            ]]></db:sql>
+			<db:parameter-types />
+			<db:input-parameters ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    employeeId: vars.createEmployeeRequestPayload.employeeId,
+    name: vars.createEmployeeRequestPayload.name,
+    address: vars.createEmployeeRequestPayload.address,
+    salary: vars.createEmployeeRequestPayload.salary
+}]]]></db:input-parameters>
+		</db:insert>
+		<logger level="INFO" doc:name="Log Insert Employee DB Response" doc:id="76d773ea-ddc2-418a-8977-417d96a164e1" message="Employee insert database response received" />
+		<ee:transform doc:name="Build Employee Create Success Response" doc:id="78627ddc-957a-4e64-ba92-bafb87c5e8e3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+    status: "SUCCESS",
+    message: "Employee created successfully"
+}
+                ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log Create Employee DB End" doc:id="194f5064-637e-40c7-bfb6-dd5516c0a266" message="Create employee database operation completed" />
+	</sub-flow>
+</mule>

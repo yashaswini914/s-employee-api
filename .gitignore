@@ -46,3 +46,21 @@ target/
 .DS_Store
 velocity.log
 .tooling-project
+
+# Local editor settings
+.vscode/
+
+# Generated reports
+reports/
+
+# Local secure properties
+src/main/resources/properties/secure.yaml
+src/main/resources/properties/secure.yml
+src/main/resources/properties/secure.properties
+
+# Mule and Maven generated output
+target/
+.mule/
+
+# Generated MUnit embedded DataWeave resources
+src/test/resources/embedded-dw_*/

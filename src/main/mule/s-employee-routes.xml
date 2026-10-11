@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xmlns:db="http://www.mulesoft.org/schema/mule/db"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+      http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+      http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+      http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+      
+      <flow name="post:\employees:application\json:employee-api-config">
+
+        <logger
+            level="INFO"
+            doc:name="Log Create Employee Request Start"
+            message="Create employee request started"/>
+
+        <set-variable
+            doc:name="Set Create Employee Request Payload"
+            value="#[payload]"
+            variableName="createEmployeeRequestPayload"/>
+
+        <flow-ref
+            doc:name="Create Employee In Database"
+            name="create-employee-in-db-flow"/>
+
+        <logger
+            level="INFO"
+            doc:name="Log Create Employee Request End"
+            message="Create employee request completed"/>
+
+    </flow>
+    <flow name="delete:\employees\(id):employee-api-config">
+
+        <logger
+            level="INFO"
+            doc:name="Log Delete Employee Request Start"
+            message="Delete employee request started"/>
+
+        <set-variable
+            doc:name="Set Employee Id Variable"
+            value="#[attributes.uriParams.id]"
+            variableName="employeeId"/>
+
+        <flow-ref
+            doc:name="Delete Employee From Database"
+            name="delete-employee-from-db-flow"/>
+
+        <logger
+            level="INFO"
+            doc:name="Log Delete Employee Request End"
+            message="Delete employee request completed"/>
+
+    </flow>
+     <flow name="get:\employees:employee-api-config">
+
+        <logger
+            level="INFO"
+            doc:name="Log Get All Employees Request Start"
+            message="Get all employees request started"/>
+
+        <flow-ref
+            doc:name="Fetch All Employees From Database"
+            name="fetch-employee-details-from-db-flow"/>
+
+        <logger
+            level="INFO"
+            doc:name="Log Get All Employees Request End"
+            message="Get all employees request completed"/>
+
+    </flow>
+    <flow name="get:\employees\(id):employee-api-config">
+
+        <logger
+            level="INFO"
+            doc:name="Log Get Employee By ID Request Start"
+            message="Get employee by ID request started"/>
+
+        <set-variable
+            doc:name="Set Employee Id Variable"
+            value="#[attributes.uriParams.id]"
+            variableName="employeeId"/>
+
+        <flow-ref
+            doc:name="Fetch Employee By Id"
+            name="fetch-employee-by-id-from-db-flow"/>
+
+        <logger
+            level="INFO"
+            doc:name="Log Get Employee By ID Request End"
+            message="Get employee by ID request completed"/>
+
+    </flow>
+       <flow name="put:\employees\(id):application\json:employee-api-config">
+
+        <logger
+            level="INFO"
+            doc:name="Log Update Employee Request Start"
+            message="Update employee request started"/>
+
+        <set-variable
+            doc:name="Set Employee Id Variable"
+            value="#[attributes.uriParams.id]"
+            variableName="employeeId"/>
+
+        <set-variable
+            doc:name="Set Update Employee Request Payload"
+            value="#[payload]"
+            variableName="updateEmployeeRequestPayload"/>
+
+        <flow-ref
+            doc:name="Update Employee In Database"
+            name="update-employee-in-db-flow"/>
+
+        <logger
+            level="INFO"
+            doc:name="Log Update Employee Request End"
+            message="Update employee request completed"/>
+
+    </flow>
+	<sub-flow name="validate-create-employee-request-flow" doc:id="77bcad25-d70b-4739-a103-c647af49d8ef" >
+		<logger level="INFO" doc:name="Log Create Employee Validation Start" doc:id="bbf06172-90af-49d0-bf3e-843741bb9e69" message="Create employee validation started" />
+		<validation:is-true doc:name="Validate Employee ID Is Mandatory" doc:id="4160b586-f658-430e-93c5-7fa2f827c85f" config-ref="Validation_Config" expression="#[!isEmpty(vars.createEmployeeRequestPayload.employeeId default '')]" message="Employee Id is mandatory" />
+		<validation:is-true doc:name="Validate Employee Name Is Mandatory" doc:id="75592ce5-c9ba-4209-844c-24c1382a7fa2" config-ref="Validation_Config" expression="#[!isEmpty(vars.createEmployeeRequestPayload.name default '')]" message="Employee name is mandatory" />
+		<validation:is-true doc:name="Validate Employee Address Is Mandatory" doc:id="8c3414e2-523a-4e04-863b-a7e8e94030ad" config-ref="Validation_Config" expression="#[!isEmpty(vars.createEmployeeRequestPayload.address default '')]" message="Employee address is mandatory" />
+		<validation:is-not-null doc:name="Validate Employee Salary Is Mandatory" doc:id="87628418-914f-4a0a-9b79-c2a037a007c3" config-ref="Validation_Config" value="#[vars.createEmployeeRequestPayload.salary]" message="Employee salary is mandatory" />
+		<logger level="INFO" doc:name="Log Create Employee Validation End" doc:id="03c15005-1ef3-4cc6-b881-efa4793da929" message="Create employee validation completed" />
+	</sub-flow>
+
+</mule>

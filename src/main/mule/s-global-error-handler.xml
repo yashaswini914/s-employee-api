@@ -2,17 +2,30 @@
 
 <mule xmlns="http://www.mulesoft.org/schema/mule/core"
       xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:schemaLocation="
-      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-      http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+      http://www.mulesoft.org/schema/mule/core
+      http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+      http://www.mulesoft.org/schema/mule/ee/core
+      http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 
     <error-handler name="employee-global-error-handler">
 
-        <!-- Employee Not Found -->
-        <on-error-propagate type="VALIDATION:*" logException="true">
+        <!-- EMPLOYEE NOT FOUND -->
 
-            <ee:transform>
+        <on-error-propagate
+            doc:name="Handle Employee Not Found Error"
+            type="VALIDATION:INVALID_BOOLEAN"
+            when='#[error.description == "Employee not found"]'>
+
+            <set-variable
+                doc:name="Set Employee Not Found HTTP Status 404"
+                variableName="httpStatus"
+                value="404"/>
+
+            <ee:transform doc:name="Build Employee Not Found Error Response">
                 <ee:message>
                     <ee:set-payload><![CDATA[
 %dw 2.0
@@ -23,24 +36,23 @@ output application/json
     errorCode: "EMP-404",
     message: error.description,
     correlationId: correlationId,
-    timestamp: (now() as String),
-    apiName: p("app.name")
+    timestamp: now() as String,
+    apiName: "s-employee-api"
 }
-]]></ee:set-payload>
+                    ]]></ee:set-payload>
                 </ee:message>
-
-                <ee:variables>
-                    <ee:set-variable variableName="httpStatus">400</ee:set-variable>
-                </ee:variables>
-
             </ee:transform>
 
         </on-error-propagate>
 
-        <!-- Invalid Request -->
-        <on-error-propagate type="APIKIT:BAD_REQUEST">
+        <!-- VALIDATION ERRORS -->
 
-            <ee:transform>
+        <on-error-propagate
+            doc:name="Handle Employee Validation Error"
+            type="VALIDATION:*"
+            logException="true">
+
+            <ee:transform doc:name="Build Employee Validation Error Response">
                 <ee:message>
                     <ee:set-payload><![CDATA[
 %dw 2.0
@@ -54,21 +66,53 @@ output application/json
     timestamp: (now() as String),
     apiName: p("app.name")
 }
-]]></ee:set-payload>
+                    ]]></ee:set-payload>
                 </ee:message>
 
                 <ee:variables>
                     <ee:set-variable variableName="httpStatus">400</ee:set-variable>
                 </ee:variables>
-
             </ee:transform>
 
         </on-error-propagate>
 
-        <!-- Wrong URL -->
-        <on-error-propagate type="APIKIT:NOT_FOUND">
+        <!-- INVALID API REQUEST -->
 
-            <ee:transform>
+        <on-error-propagate
+            doc:name="Handle APIkit Bad Request Error"
+            type="APIKIT:BAD_REQUEST">
+
+            <ee:transform doc:name="Build Bad Request Error Response">
+                <ee:message>
+                    <ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+    status: "ERROR",
+    errorCode: "EMP-400",
+    message: error.description,
+    correlationId: correlationId,
+    timestamp: (now() as String),
+    apiName: p("app.name")
+}
+                    ]]></ee:set-payload>
+                </ee:message>
+
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+
+        </on-error-propagate>
+
+        <!-- UNKNOWN API RESOURCE -->
+
+        <on-error-propagate
+            doc:name="Handle APIkit Resource Not Found Error"
+            type="APIKIT:NOT_FOUND">
+
+            <ee:transform doc:name="Build Resource Not Found Error Response">
                 <ee:message>
                     <ee:set-payload><![CDATA[
 %dw 2.0
@@ -82,21 +126,23 @@ output application/json
     timestamp: (now() as String),
     apiName: p("app.name")
 }
-]]></ee:set-payload>
+                    ]]></ee:set-payload>
                 </ee:message>
 
                 <ee:variables>
                     <ee:set-variable variableName="httpStatus">404</ee:set-variable>
                 </ee:variables>
-
             </ee:transform>
 
         </on-error-propagate>
 
-        <!-- Wrong HTTP Method -->
-        <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+        <!-- UNSUPPORTED HTTP METHOD -->
 
-            <ee:transform>
+        <on-error-propagate
+            doc:name="Handle APIkit Method Not Allowed Error"
+            type="APIKIT:METHOD_NOT_ALLOWED">
+
+            <ee:transform doc:name="Build Method Not Allowed Error Response">
                 <ee:message>
                     <ee:set-payload><![CDATA[
 %dw 2.0
@@ -110,21 +156,23 @@ output application/json
     timestamp: (now() as String),
     apiName: p("app.name")
 }
-]]></ee:set-payload>
+                    ]]></ee:set-payload>
                 </ee:message>
 
                 <ee:variables>
                     <ee:set-variable variableName="httpStatus">405</ee:set-variable>
                 </ee:variables>
-
             </ee:transform>
 
         </on-error-propagate>
 
-        <!-- Database Down -->
-        <on-error-propagate type="DB:CONNECTIVITY">
+        <!-- DATABASE CONNECTIVITY ERROR -->
 
-            <ee:transform>
+        <on-error-propagate
+            doc:name="Handle Database Connectivity Error"
+            type="DB:CONNECTIVITY">
+
+            <ee:transform doc:name="Build Database Unavailable Error Response">
                 <ee:message>
                     <ee:set-payload><![CDATA[
 %dw 2.0
@@ -138,21 +186,23 @@ output application/json
     timestamp: (now() as String),
     apiName: p("app.name")
 }
-]]></ee:set-payload>
+                    ]]></ee:set-payload>
                 </ee:message>
 
                 <ee:variables>
                     <ee:set-variable variableName="httpStatus">503</ee:set-variable>
                 </ee:variables>
-
             </ee:transform>
 
         </on-error-propagate>
 
-        <!-- SQL Issues -->
-        <on-error-propagate type="DB:QUERY_EXECUTION">
+        <!-- DATABASE QUERY ERROR -->
 
-            <ee:transform>
+        <on-error-propagate
+            doc:name="Handle Database Query Execution Error"
+            type="DB:QUERY_EXECUTION">
+
+            <ee:transform doc:name="Build Database Query Error Response">
                 <ee:message>
                     <ee:set-payload><![CDATA[
 %dw 2.0
@@ -166,21 +216,24 @@ output application/json
     timestamp: (now() as String),
     apiName: p("app.name")
 }
-]]></ee:set-payload>
+                    ]]></ee:set-payload>
                 </ee:message>
 
                 <ee:variables>
                     <ee:set-variable variableName="httpStatus">500</ee:set-variable>
                 </ee:variables>
-
             </ee:transform>
 
         </on-error-propagate>
 
-        <!-- Catch-All -->
-        <on-error-propagate type="ANY" logException="true">
+        <!-- UNEXPECTED ERRORS -->
 
-            <ee:transform>
+        <on-error-propagate
+            doc:name="Handle Unexpected Employee API Error"
+            type="ANY"
+            logException="true">
+
+            <ee:transform doc:name="Build Internal Server Error Response">
                 <ee:message>
                     <ee:set-payload><![CDATA[
 %dw 2.0
@@ -194,13 +247,12 @@ output application/json
     timestamp: (now() as String),
     apiName: p("app.name")
 }
-]]></ee:set-payload>
+                    ]]></ee:set-payload>
                 </ee:message>
 
                 <ee:variables>
                     <ee:set-variable variableName="httpStatus">500</ee:set-variable>
                 </ee:variables>
-
             </ee:transform>
 
         </on-error-propagate>
