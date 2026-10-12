@@ -103,6 +103,28 @@ jobs:
           name: sapi-application
           path: target
 
+      - name: Publish application to Anypoint Exchange
+        shell: bash
+        env:
+          ANYPOINT_MAVEN_USERNAME: "~~~Client~~~"
+          ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
+          MULE_SECURE_YAML: ${{ secrets.MULE_SECURE_YAML }}
+          MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
+        run: |
+          set -euo pipefail
+
+          test -n "$MULE_SECURE_YAML"
+          test -n "$MULE_SECURE_KEY"
+
+          mkdir -p src/main/resources/properties
+          printf '%s\n' "$MULE_SECURE_YAML" > src/main/resources/properties/secure.yaml
+          chmod 600 src/main/resources/properties/secure.yaml
+
+          mvn -B deploy \
+            -DskipTests \
+            -Dsecure.key="$MULE_SECURE_KEY"
+
+
       - name: Deploy to CloudHub 2.0
         shell: bash
         env:
