@@ -1,39 +1,44 @@
-          ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
-          MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
-          MAVEN_OPTS: -Xmx2048m
-        run: |
-          set -euo pipefail
-          test -n "$MULE_SECURE_KEY" || { echo "::error::MULE_SECURE_KEY is missing"; exit 1; }
-          mvn -B clean verify -Dsecure.key="$MULE_SECURE_KEY"
+name: Employee SAPI CI/CD
 
-      - name: Upload MUnit reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sapi-munit-reports
-          path: |
-            target/surefire-reports/
-            target/munit-reports/
-            target/site/munit/
-          if-no-files-found: warn
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
-      - name: Upload packaged application
-        uses: actions/upload-artifact@v4
-        with:
-          name: sapi-application
-          path: target/*-mule-application.jar
-          if-no-files-found: error
+permissions:
+  contents: read
 
-  cd:
-    name: Deploy SAPI to CloudHub 2.0
-    needs: ci
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+concurrency:
+  group: employee-sapi-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-test-deploy:
+    name: MUnit, Exchange, CloudHub 2.0
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      ANYPOINT_CLIENT_ID: ${{ secrets.ANYPOINT_CLIENT_ID }}
+      ANYPOINT_CLIENT_SECRET: ${{ secrets.ANYPOINT_CLIENT_SECRET }}
+      ANYPOINT_MAVEN_USERNAME: '~~~Client~~~'
+      ANYPOINT_MAVEN_PASSWORD: '${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}'
+      MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
+      MULE_SECURE_YAML: ${{ secrets.MULE_SECURE_YAML }}
+      CH2_CLIENT_ID: ${{ secrets.CH2_CLIENT_ID }}
+      CH2_CLIENT_SECRET: ${{ secrets.CH2_CLIENT_SECRET }}
+      ANYPOINT_PLATFORM_CLIENT_ID: ${{ secrets.ANYPOINT_PLATFORM_CLIENT_ID }}
+      ANYPOINT_PLATFORM_CLIENT_SECRET: ${{ secrets.ANYPOINT_PLATFORM_CLIENT_SECRET }}
+      CH2_TARGET: ${{ vars.CH2_TARGET }}
+      CH2_ENVIRONMENT: ${{ vars.CH2_ENVIRONMENT }}
+      MAVEN_OPTS: '-Xmx2048m'
+
     steps:
-      - name: Checkout source
+      - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Set up Java 17 and Exchange Maven authentication
+      - name: Install Java 17 and configure Exchange Maven credentials
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -43,73 +48,68 @@
           server-username: ANYPOINT_MAVEN_USERNAME
           server-password: ANYPOINT_MAVEN_PASSWORD
 
-      - name: Set up Maven 3.9.9
-        uses: stCarolas/setup-maven@v5
-        with:
-          maven-version: '3.9.9'
-
-      - name: Download packaged application
-        uses: actions/download-artifact@v4
-        with:
-          name: sapi-application
-          path: target
-
-      - name: Publish application to Anypoint Exchange
+      - name: Validate and build with Maven; run MUnit; publish and deploy
         shell: bash
-        env:
-          ANYPOINT_MAVEN_USERNAME: "~~~Client~~~"
-          ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
-          MULE_SECURE_YAML: ${{ secrets.MULE_SECURE_YAML }}
-          MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
-          MAVEN_OPTS: -Xmx2048m
         run: |
           set -euo pipefail
-          test -n "$MULE_SECURE_YAML" || { echo "::error::MULE_SECURE_YAML is missing"; exit 1; }
-          test -n "$MULE_SECURE_KEY" || { echo "::error::MULE_SECURE_KEY is missing"; exit 1; }
-          mkdir -p src/main/resources/properties
-          printf '%s\n' "$MULE_SECURE_YAML" > src/main/resources/properties/secure.yaml
-          chmod 600 src/main/resources/properties/secure.yaml
-          mvn -B deploy -DskipTests -Dsecure.key="$MULE_SECURE_KEY"
 
-      - name: Deploy to CloudHub 2.0
-        shell: bash
-        env:
-          ANYPOINT_MAVEN_USERNAME: "~~~Client~~~"
-          ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
-          CH2_CLIENT_ID: ${{ secrets.CH2_CLIENT_ID }}
-          CH2_CLIENT_SECRET: ${{ secrets.CH2_CLIENT_SECRET }}
-          MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
-          CH2_TARGET: ${{ vars.CH2_TARGET }}
-          CH2_ENVIRONMENT: ${{ vars.CH2_ENVIRONMENT }}
-          ANYPOINT_PLATFORM_CLIENT_ID: ${{ secrets.ANYPOINT_PLATFORM_CLIENT_ID }}
-          ANYPOINT_PLATFORM_CLIENT_SECRET: ${{ secrets.ANYPOINT_PLATFORM_CLIENT_SECRET }}
-          MAVEN_OPTS: -Xmx2048m
-        run: |
-          set -euo pipefail
-          for name in CH2_CLIENT_ID CH2_CLIENT_SECRET MULE_SECURE_KEY CH2_TARGET CH2_ENVIRONMENT ANYPOINT_PLATFORM_CLIENT_ID ANYPOINT_PLATFORM_CLIENT_SECRET; do
+          # Catch the earlier broken POM (root element <goal>) before Maven starts.
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          root = ET.parse('pom.xml').getroot()
+          if root.tag.rsplit('}', 1)[-1] != 'project':
+              raise SystemExit('ERROR: pom.xml must have <project> as its root element')
+          print('POM XML validated: <project>')
+          PY
+
+          # Ensure the Exchange credentials are actually present.
+          test -n "$ANYPOINT_CLIENT_ID" || { echo '::error::Missing ANYPOINT_CLIENT_ID'; exit 1; }
+          test -n "$ANYPOINT_CLIENT_SECRET" || { echo '::error::Missing ANYPOINT_CLIENT_SECRET'; exit 1; }
+          test -n "$MULE_SECURE_KEY" || { echo '::error::Missing MULE_SECURE_KEY'; exit 1; }
+
+          # Restore the secure YAML only if it is not in the checkout.
+          if [[ ! -s src/main/resources/properties/secure.yaml ]]; then
+            test -n "$MULE_SECURE_YAML" || { echo '::error::Missing secure.yaml and MULE_SECURE_YAML secret'; exit 1; }
+            mkdir -p src/main/resources/properties
+            printf '%s\n' "$MULE_SECURE_YAML" > src/main/resources/properties/secure.yaml
+            chmod 600 src/main/resources/properties/secure.yaml
+          fi
+
+          # Pull Maven plugins and dependencies; run all bound MUnit suites.
+          # A test failure aborts the build before Exchange/CloudHub deployment.
+          mvn --version
+          for name in CH2_CLIENT_ID CH2_CLIENT_SECRET CH2_TARGET CH2_ENVIRONMENT ANYPOINT_PLATFORM_CLIENT_ID ANYPOINT_PLATFORM_CLIENT_SECRET; do
             if [[ -z "${!name:-}" ]]; then
-              echo "::error::$name is missing or empty"
+              echo "::error::Missing $name"
               exit 1
             fi
           done
 
-          ARTIFACT="$(find target -maxdepth 1 -type f -name '*-mule-application.jar' -print -quit)"
-          if [[ -z "$ARTIFACT" ]]; then
-            echo "::error::Mule application JAR not found"
-            ls -la target
-            exit 1
-          fi
-
-          echo "Environment: $CH2_ENVIRONMENT"
-          echo "Target: $CH2_TARGET"
-          echo "Application artifact: $ARTIFACT"
-
-          mvn -B mule:deploy \
-            -Dmule.artifact="$GITHUB_WORKSPACE/$ARTIFACT" \
+          echo 'Running MUnit, publishing to Exchange, then deploying to CloudHub 2.0.'
+          mvn -B -ntp -U clean deploy -DmuleDeploy \
+            -Dsecure.key="$MULE_SECURE_KEY" \
             -Ddeploy.environment="$CH2_ENVIRONMENT" \
             -Ddeploy.target="$CH2_TARGET" \
             -Ddeploy.clientId="$CH2_CLIENT_ID" \
             -Ddeploy.clientSecret="$CH2_CLIENT_SECRET" \
             -Dplatform.clientId="$ANYPOINT_PLATFORM_CLIENT_ID" \
-            -Dplatform.clientSecret="$ANYPOINT_PLATFORM_CLIENT_SECRET" \
-            -Dsecure.key="$MULE_SECURE_KEY"
+            -Dplatform.clientSecret="$ANYPOINT_PLATFORM_CLIENT_SECRET"
+
+      - name: Upload MUnit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: employee-sapi-munit-reports
+          path: |
+            target/surefire-reports/
+            target/munit-reports/
+            target/site/munit/
+          if-no-files-found: warn
+
+      - name: Upload packaged Mule application
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: employee-sapi-mule-application
+          path: target/*-mule-application.jar
+          if-no-files-found: warn
