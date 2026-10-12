@@ -33,6 +33,16 @@ jobs:
 
       - name: Check Maven version
         run: mvn -version
+      - name: Validate secure YAML
+        run: |
+          python - <<'PY'
+          import yaml
+          path = "src/main/resources/properties/secure.yaml"
+          with open(path, encoding="utf-8") as f:
+              data = yaml.safe_load(f)
+          assert isinstance(data, dict), "Secure YAML must contain a mapping"
+          print("Secure YAML syntax is valid")
+          PY
 
 
       - name: Restore secure properties file
