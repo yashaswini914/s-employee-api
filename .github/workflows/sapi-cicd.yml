@@ -1,4 +1,3 @@
-
 name: Employee SAPI CI/CD
 
 on:
@@ -37,6 +36,7 @@ jobs:
         env:
           MULE_SECURE_YAML: ${{ secrets.MULE_SECURE_YAML }}
         run: |
+          set -euo pipefail
           test -n "$MULE_SECURE_YAML"
           mkdir -p src/main/resources/properties
           printf '%s\n' "$MULE_SECURE_YAML" > src/main/resources/properties/secure.yaml
@@ -50,6 +50,7 @@ jobs:
           MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
           MAVEN_OPTS: -Xmx2048m
         run: |
+          set -euo pipefail
           test -n "$MULE_SECURE_KEY"
           mvn -B clean verify -Dsecure.key="$MULE_SECURE_KEY"
 
@@ -71,7 +72,6 @@ jobs:
           path: target/*-mule-application.jar
           if-no-files-found: error
 
-  
   cd:
     name: Deploy SAPI to CloudHub 2.0
     needs: ci
@@ -112,7 +112,6 @@ jobs:
           MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
         run: |
           set -euo pipefail
-
           test -n "$MULE_SECURE_YAML"
           test -n "$MULE_SECURE_KEY"
 
@@ -123,7 +122,6 @@ jobs:
           mvn -B deploy \
             -DskipTests \
             -Dsecure.key="$MULE_SECURE_KEY"
-
 
       - name: Deploy to CloudHub 2.0
         shell: bash
@@ -137,20 +135,17 @@ jobs:
           CH2_ENVIRONMENT: ${{ vars.CH2_ENVIRONMENT }}
           ANYPOINT_PLATFORM_CLIENT_ID: ${{ secrets.ANYPOINT_PLATFORM_CLIENT_ID }}
           ANYPOINT_PLATFORM_CLIENT_SECRET: ${{ secrets.ANYPOINT_PLATFORM_CLIENT_SECRET }}
-
-
         run: |
           set -euo pipefail
 
-          for name in CH2_CLIENT_ID CH2_CLIENT_SECRET MULE_SECURE_KEY CH2_TARGET CH2_ENVIRONMENT; do
-            if [[ -z "${!name}" ]]; then
+          for name in CH2_CLIENT_ID CH2_CLIENT_SECRET MULE_SECURE_KEY CH2_TARGET CH2_ENVIRONMENT ANYPOINT_PLATFORM_CLIENT_ID ANYPOINT_PLATFORM_CLIENT_SECRET; do
+            if [[ -z "${!name:-}" ]]; then
               echo "::error::$name is missing or empty"
               exit 1
             fi
           done
 
           ARTIFACT="$(find target -maxdepth 1 -type f -name '*-mule-application.jar' -print -quit)"
-
           if [[ -z "$ARTIFACT" ]]; then
             echo "::error::Mule application JAR not found"
             ls -la target
@@ -168,9 +163,6 @@ jobs:
             -Ddeploy.target="$CH2_TARGET" \
             -Ddeploy.clientId="$CH2_CLIENT_ID" \
             -Ddeploy.clientSecret="$CH2_CLIENT_SECRET" \
-            -Dsecure.key="$MULE_SECURE_KEY"
             -Dplatform.clientId="$ANYPOINT_PLATFORM_CLIENT_ID" \
             -Dplatform.clientSecret="$ANYPOINT_PLATFORM_CLIENT_SECRET" \
             -Dsecure.key="$MULE_SECURE_KEY"
-
-
