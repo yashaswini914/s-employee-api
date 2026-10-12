@@ -147,33 +147,33 @@ jobs:
           CH2_TARGET: ${{ vars.CH2_TARGET }}
           CH2_ENVIRONMENT: ${{ vars.CH2_ENVIRONMENT }}
 
+        
         run: |
-          set -e
+          set -euo pipefail
 
-          for name in CH2_CLIENT_ID CH2_CLIENT_SECRET MULE_SECURE_KEY CH2_TARGET CH2_ENVIRONMENT; do
-            if [[ -z "${!name}" ]]; then
-              echo "::error::$name is missing or empty"
-              exit 1
-            fi
-          done
+          TOKEN_RESPONSE=$(curl -fsS \
+            -X POST "https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "grant_type=client_credentials" \
+            --data-urlencode "client_id=$CH2_CLIENT_ID" \
+            --data-urlencode "client_secret=$CH2_CLIENT_SECRET")
 
-          ARTIFACT="$(find target -maxdepth 1 -type f -name '*-mule-application.jar' -print -quit)"
+          TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token // empty')
+          test -n "$TOKEN" || { echo "::error::Token not returned"; exit 1; }
+          echo "::add-mask::$TOKEN"
 
-          if [[ -z "$ARTIFACT" ]]; then
-            echo "::error::Mule application JAR not found"
+          ORG_ID="REPLACE_WITH_YOUR_TEK_BUSINESS_GROUP_UUID"
+
+          HTTP_STATUS=$(curl -sS -o /tmp/environments.json -w "%{http_code}" \
+            -H "Authorization: Bearer $TOKEN" \
+            "https://anypoint.mulesoft.com/accounts/api/cs/organizations/$ORG_ID/environments")
+
+          echo "Environment API HTTP status: $HTTP_STATUS"
+
+          if [[ "$HTTP_STATUS" != "200" ]]; then
+            echo "::error::Environment lookup failed with HTTP $HTTP_STATUS"
             exit 1
           fi
 
-          echo "Environment: $CH2_ENVIRONMENT"
-          echo "Target: $CH2_TARGET"
-          echo "Artifact: $ARTIFACT"
-
-          mvn -B mule:deploy \
-            -Dmule.artifact="$GITHUB_WORKSPACE/$ARTIFACT" \
-            -Ddeploy.environment="$CH2_ENVIRONMENT" \
-            -Ddeploy.target="$CH2_TARGET" \
-            -Ddeploy.clientId="$CH2_CLIENT_ID" \
-            -Ddeploy.clientSecret="$CH2_CLIENT_SECRET" \
-            -Dsecure.key="$MULE_SECURE_KEY"
-
+          jq 'if type == "array" then . else (.data // .environments // []) end | map({name, id, organizationId})' /tmp/environments.json
 
