@@ -9,7 +9,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<app.runtime>4.12.2</app.runtime>
+		<app.runtime>4.12.4</app.runtime>
 		<mule.maven.plugin.version>4.10.1</mule.maven.plugin.version>
 		<employee-api.version>1.0.0</employee-api.version>
 		<munit.version>3.6.3</munit.version>
@@ -45,20 +45,48 @@
 				<artifactId>maven-clean-plugin</artifactId>
 				<version>3.2.0</version>
 			</plugin>
-			<plugin>
-				<groupId>org.mule.tools.maven</groupId>
-				<artifactId>mule-maven-plugin</artifactId>
-				<version>${mule.maven.plugin.version}</version>
-				<extensions>true</extensions>
-				<configuration>
-					<sharedLibraries>
-						<sharedLibrary>
-							<groupId>com.mysql</groupId>
-							<artifactId>mysql-connector-j</artifactId>
-						</sharedLibrary>
-					</sharedLibraries>
-				</configuration>
-			</plugin>
+			
+<plugin>
+    <groupId>org.mule.tools.maven</groupId>
+    <artifactId>mule-maven-plugin</artifactId>
+    <version>${mule.maven.plugin.version}</version>
+    <extensions>true</extensions>
+
+    <configuration>
+        <sharedLibraries>
+            <sharedLibrary>
+                <groupId>com.mysql</groupId>
+                <artifactId>mysql-connector-j</artifactId>
+            </sharedLibrary>
+        </sharedLibraries>
+
+        <cloudhub2Deployment>
+            <uri>https://anypoint.mulesoft.com</uri>
+            <provider>MC</provider>
+            <environment>${deploy.environment}</environment>
+            <target>${deploy.target}</target>
+            <applicationName>${deploy.appName}</applicationName>
+            <muleVersion>${app.runtime}</muleVersion>
+            <javaVersion>17</javaVersion>
+            <replicas>1</replicas>
+            <vCores>0.1</vCores>
+
+            <connectedAppClientId>${deploy.clientId}</connectedAppClientId>
+            <connectedAppClientSecret>${deploy.clientSecret}</connectedAppClientSecret>
+            <connectedAppGrantType>client_credentials</connectedAppGrantType>
+
+            <properties>
+                <api.id>21230619</api.id>
+                <http.port>8081</http.port>
+            </properties>
+
+            <secureProperties>
+                <secure.key>${secure.key}</secure.key>
+            </secureProperties>
+        </cloudhub2Deployment>
+    </configuration>
+</plugin>
+
 		</plugins>
 	</build>
 	<dependencies>

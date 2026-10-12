@@ -1,0 +1,130 @@
+
+name: Employee SAPI CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  ci:
+    name: Build and Test SAPI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          server-id: anypoint-exchange-v3
+          server-username: ANYPOINT_MAVEN_USERNAME
+          server-password: ANYPOINT_MAVEN_PASSWORD
+
+      - name: Set up Maven 3.9.9
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: '3.9.9'
+
+      - name: Restore secure.yaml
+        shell: bash
+        env:
+          MULE_SECURE_YAML: ${{ secrets.MULE_SECURE_YAML }}
+        run: |
+          test -n "$MULE_SECURE_YAML"
+          mkdir -p src/main/resources/properties
+          printf '%s\n' "$MULE_SECURE_YAML" > src/main/resources/properties/secure.yaml
+          chmod 600 src/main/resources/properties/secure.yaml
+          ruby -e 'require "yaml"; YAML.load_file(ARGV[0])' src/main/resources/properties/secure.yaml
+
+      - name: Build and run MUnit tests
+        env:
+          ANYPOINT_MAVEN_USERNAME: "~~~Client~~~"
+          ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
+          MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
+          MAVEN_OPTS: -Xmx2048m
+        run: |
+          test -n "$MULE_SECURE_KEY"
+          mvn -B clean verify -Dsecure.key="$MULE_SECURE_KEY"
+
+      - name: Upload MUnit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sapi-munit-reports
+          path: |
+            target/surefire-reports/
+            target/munit-reports/
+            target/site/munit/
+          if-no-files-found: warn
+
+      - name: Upload packaged application
+        uses: actions/upload-artifact@v4
+        with:
+          name: sapi-application
+          path: target/*-mule-application.jar
+          if-no-files-found: error
+
+  cd:
+    name: Deploy SAPI to CloudHub 2.0
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          server-id: anypoint-exchange-v3
+          server-username: ANYPOINT_MAVEN_USERNAME
+          server-password: ANYPOINT_MAVEN_PASSWORD
+
+      - name: Set up Maven 3.9.9
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: '3.9.9'
+
+      - name: Download tested application
+        uses: actions/download-artifact@v4
+        with:
+          name: sapi-application
+          path: target
+
+      - name: Deploy to CloudHub 2.0
+        shell: bash
+        env:
+          ANYPOINT_MAVEN_USERNAME: "~~~Client~~~"
+          ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
+          CH2_CLIENT_ID: ${{ secrets.CH2_CLIENT_ID }}
+          CH2_CLIENT_SECRET: ${{ secrets.CH2_CLIENT_SECRET }}
+          MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
+          CH2_TARGET: ${{ vars.CH2_TARGET }}
+          CH2_ENVIRONMENT: ${{ vars.CH2_ENVIRONMENT }}
+          CH2_APP_NAME: ${{ vars.CH2_APP_NAME }}
+        run: |
+          test -n "$CH2_CLIENT_ID"
+          test -n "$CH2_CLIENT_SECRET"
+          test -n "$MULE_SECURE_KEY"
+          test -n "$CH2_TARGET"
+          test -n "$CH2_ENVIRONMENT"
+          test -n "$CH2_APP_NAME"
+
+          mvn -B mule:deploy \
+            -Ddeploy.environment="$CH2_ENVIRONMENT" \
+            -Ddeploy.target="$CH2_TARGET" \
+            -Ddeploy.appName="$CH2_APP_NAME" \
+            -Ddeploy.clientId="$CH2_CLIENT_ID" \
+            -Ddeploy.clientSecret="$CH2_CLIENT_SECRET" \
+            -Dsecure.key="$MULE_SECURE_KEY"
