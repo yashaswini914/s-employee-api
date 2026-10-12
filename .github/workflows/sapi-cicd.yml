@@ -102,6 +102,7 @@ jobs:
           name: sapi-application
           path: target
 
+     
       - name: Deploy to CloudHub 2.0
         shell: bash
         env:
@@ -112,42 +113,34 @@ jobs:
           MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
           CH2_TARGET: ${{ vars.CH2_TARGET }}
           CH2_ENVIRONMENT: ${{ vars.CH2_ENVIRONMENT }}
-          CH2_APP_NAME: ${{ vars.CH2_APP_NAME }}
-          CH2_BUSINESS_GROUP_ID: ${{ vars.CH2_BUSINESS_GROUP_ID }}
-        
-        
+
         run: |
           set -e
 
-          test -n "$CH2_CLIENT_ID"
-          test -n "$CH2_CLIENT_SECRET"
-          test -n "$MULE_SECURE_KEY"
-          test -n "$CH2_TARGET"
-          test -n "$CH2_ENVIRONMENT"
-          test -n "$CH2_APP_NAME"
-          test -n "$CH2_BUSINESS_GROUP_ID"
+          for name in CH2_CLIENT_ID CH2_CLIENT_SECRET MULE_SECURE_KEY CH2_TARGET CH2_ENVIRONMENT; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::$name is missing or empty"
+              exit 1
+            fi
+          done
 
-          if ! [[ "$CH2_BUSINESS_GROUP_ID" =~ ^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$ ]]; then
-            echo "::error::CH2_BUSINESS_GROUP_ID must contain a valid UUID"
+          ARTIFACT="$(find target -maxdepth 1 -type f -name '*-mule-application.jar' -print -quit)"
+
+          if [[ -z "$ARTIFACT" ]]; then
+            echo "::error::Mule application JAR not found"
             exit 1
           fi
 
-          ARTIFACT="$(find target -maxdepth 1 -type f -name '*-mule-application.jar' -print -quit)"
-          test -n "$ARTIFACT" || {
-            echo "::error::Mule application JAR not found"
-            exit 1
-          }
           echo "Environment: $CH2_ENVIRONMENT"
           echo "Target: $CH2_TARGET"
-          echo "Business Group ID configured: $([[ -n "$CH2_BUSINESS_GROUP_ID" ]] && echo yes || echo no)"
-          echo "Business Group ID length: ${#CH2_BUSINESS_GROUP_ID}"
+          echo "Artifact: $ARTIFACT"
+
           mvn -B mule:deploy \
             -Dmule.artifact="$GITHUB_WORKSPACE/$ARTIFACT" \
-            -Ddeploy.businessGroupId="$CH2_BUSINESS_GROUP_ID" \
             -Ddeploy.environment="$CH2_ENVIRONMENT" \
             -Ddeploy.target="$CH2_TARGET" \
-            -Ddeploy.appName="$CH2_APP_NAME" \
             -Ddeploy.clientId="$CH2_CLIENT_ID" \
             -Ddeploy.clientSecret="$CH2_CLIENT_SECRET" \
             -Dsecure.key="$MULE_SECURE_KEY"
+
 
