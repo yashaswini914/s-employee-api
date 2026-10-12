@@ -49,7 +49,7 @@ http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/sc
 
     <configuration
         defaultErrorHandler-ref="employee-global-error-handler"/>
-	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="f34289a5-f407-4e87-b053-50b3e89c1d25" file="properties\secure.yaml" key="${secure.key}" >
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="f34289a5-f407-4e87-b053-50b3e89c1d25" file="properties/secure.yaml" key="${secure.key}" >
 		<secure-properties:encrypt algorithm="Blowfish" />
 	</secure-properties:config>
         
