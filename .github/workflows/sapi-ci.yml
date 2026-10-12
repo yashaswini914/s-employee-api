@@ -33,6 +33,21 @@ jobs:
 
       - name: Check Maven version
         run: mvn -version
+
+      - name: Restore secure properties file
+        env:
+          MULE_SECURE_YAML: ${{ secrets.MULE_SECURE_YAML }}
+        run: |
+          mkdir -p src/main/resources/properties
+          if [ -z "$MULE_SECURE_YAML" ]; then
+            echo "MULE_SECURE_YAML secret is empty or unavailable"
+            exit 1
+          fi
+          printf '%s\n' "$MULE_SECURE_YAML" > src/main/resources/properties/secure.yaml
+
+      - name: Install PyYAML
+        run: python -m pip install PyYAML
+
       - name: Validate secure YAML
         run: |
           python - <<'PY'
@@ -44,17 +59,6 @@ jobs:
           print("Secure YAML syntax is valid")
           PY
 
-
-      - name: Restore secure properties file
-        env:
-          MULE_SECURE_YAML: ${{ secrets.MULE_SECURE_YAML }}
-        run: |
-          mkdir -p src/main/resources/properties
-          printf '%s\n' "$MULE_SECURE_YAML" > src/main/resources/properties/secure.yaml
-
-
-      
-      
       - name: Build and run MUnit tests
         run: mvn -B clean verify -Dsecure.key="$MULE_SECURE_KEY"
         env:
