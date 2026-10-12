@@ -102,6 +102,39 @@ jobs:
           name: sapi-application
           path: target
 
+      - name: Verify Anypoint Connected App access
+        shell: bash
+        env:
+          CH2_CLIENT_ID: ${{ secrets.CH2_CLIENT_ID }}
+          CH2_CLIENT_SECRET: ${{ secrets.CH2_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+
+          TOKEN_RESPONSE=$(curl -fsS \
+            -X POST "https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "grant_type=client_credentials" \
+            --data-urlencode "client_id=$CH2_CLIENT_ID" \
+            --data-urlencode "client_secret=$CH2_CLIENT_SECRET")
+
+          TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token // empty')
+          test -n "$TOKEN" || { echo "::error::Token not returned"; exit 1; }
+          echo "::add-mask::$TOKEN"
+
+          HTTP_STATUS=$(curl -sS -o /tmp/environments.json -w "%{http_code}" \
+            -H "Authorization: Bearer $TOKEN" \
+            "https://anypoint.mulesoft.com/accounts/api/environments")
+
+          echo "Environment API HTTP status: $HTTP_STATUS"
+
+          if [[ "$HTTP_STATUS" != "200" ]]; then
+            echo "::error::Connected App cannot retrieve environments"
+            exit 1
+          fi
+
+          jq '[.data[]? | {name, id, organizationId}]' /tmp/environments.json
+
+
      
       - name: Deploy to CloudHub 2.0
         shell: bash
