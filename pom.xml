@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.mycompany</groupId>
-	<artifactId>s-employee-api</artifactId>
+	<groupId>64bf67c7-37b5-45e5-a0ea-95fa6c0a7682</groupId>
+	<artifactId>app-s-employee-api</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>mule-application</packaging>
 	<name>s-employee-api</name>
@@ -64,11 +64,11 @@
             <uri>https://anypoint.mulesoft.com</uri>
             <provider>MC</provider>
 
-<businessGroupId>${deploy.businessGroupId}</businessGroupId>
+<businessGroupId>64bf67c7-37b5-45e5-a0ea-95fa6c0a7682</businessGroupId>
 <environment>${deploy.environment}</environment>
 
             <target>${deploy.target}</target>
-            <applicationName>${deploy.appName}</applicationName>
+            <applicationName>app-s-employee-api</applicationName>
             <muleVersion>${app.runtime}</muleVersion>
             <javaVersion>17</javaVersion>
             <replicas>1</replicas>
