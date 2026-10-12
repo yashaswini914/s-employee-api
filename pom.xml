@@ -63,7 +63,10 @@
         <cloudhub2Deployment>
             <uri>https://anypoint.mulesoft.com</uri>
             <provider>MC</provider>
-            <environment>${deploy.environment}</environment>
+
+<businessGroupId>${deploy.businessGroupId}</businessGroupId>
+<environment>${deploy.environment}</environment>
+
             <target>${deploy.target}</target>
             <applicationName>${deploy.appName}</applicationName>
             <muleVersion>${app.runtime}</muleVersion>

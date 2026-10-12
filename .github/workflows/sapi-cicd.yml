@@ -113,6 +113,8 @@ jobs:
           CH2_TARGET: ${{ vars.CH2_TARGET }}
           CH2_ENVIRONMENT: ${{ vars.CH2_ENVIRONMENT }}
           CH2_APP_NAME: ${{ vars.CH2_APP_NAME }}
+          CH2_BUSINESS_GROUP_ID: ${{ vars.CH2_BUSINESS_GROUP_ID }}
+        
         run: |
           test -n "$CH2_CLIENT_ID"
           test -n "$CH2_CLIENT_SECRET"
@@ -120,11 +122,14 @@ jobs:
           test -n "$CH2_TARGET"
           test -n "$CH2_ENVIRONMENT"
           test -n "$CH2_APP_NAME"
+          test -n "$CH2_BUSINESS_GROUP_ID"
 
           mvn -B mule:deploy \
+            -Ddeploy.businessGroupId="$CH2_BUSINESS_GROUP_ID" \
             -Ddeploy.environment="$CH2_ENVIRONMENT" \
             -Ddeploy.target="$CH2_TARGET" \
             -Ddeploy.appName="$CH2_APP_NAME" \
             -Ddeploy.clientId="$CH2_CLIENT_ID" \
             -Ddeploy.clientSecret="$CH2_CLIENT_SECRET" \
             -Dsecure.key="$MULE_SECURE_KEY"
+
