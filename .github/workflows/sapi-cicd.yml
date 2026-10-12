@@ -43,16 +43,34 @@ jobs:
           chmod 600 src/main/resources/properties/secure.yaml
           ruby -e 'require "yaml"; YAML.load_file(ARGV[0])' src/main/resources/properties/secure.yaml
 
+      
+      
       - name: Build and run MUnit tests
+        shell: bash
         env:
           ANYPOINT_MAVEN_USERNAME: "~~~Client~~~"
           ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
+          ANYPOINT_CLIENT_ID: ${{ secrets.ANYPOINT_CLIENT_ID }}
+          ANYPOINT_CLIENT_SECRET: ${{ secrets.ANYPOINT_CLIENT_SECRET }}
           MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
           MAVEN_OPTS: -Xmx2048m
+	  ANYPOINT_CLIENT_ID: ${{ secrets.ANYPOINT_CLIENT_ID }}
+          ANYPOINT_CLIENT_SECRET: ${{ secrets.ANYPOINT_CLIENT_SECRET }}
+
         run: |
           set -euo pipefail
-          test -n "$MULE_SECURE_KEY"
-          mvn -B clean verify -Dsecure.key="$MULE_SECURE_KEY"
+
+          for name in ANYPOINT_CLIENT_ID ANYPOINT_CLIENT_SECRET MULE_SECURE_KEY; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::$name is missing or empty"
+              exit 1
+            fi
+          done
+
+          mvn -B clean verify \
+            -Dsecure.key="$MULE_SECURE_KEY"
+
+
 
       - name: Upload MUnit reports
         if: always()
