@@ -82,6 +82,7 @@
                         <secureProperties>
                             <secure.key>${secure.key}</secure.key>
                             <anypoint.platform.client_secret>${platform.clientSecret}</anypoint.platform.client_secret>
+                            <anypoint.platform.client_secret>${platform.clientSecret}</anypoint.platform.client_secret>
                         </secureProperties>
                     </cloudhub2Deployment>
                 </configuration>
