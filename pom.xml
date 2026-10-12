@@ -19,7 +19,7 @@
 			<plugin>
 				<groupId>com.mulesoft.munit.tools</groupId>
 				<artifactId>munit-maven-plugin</artifactId>
-			
+			<version>${munit.version}</version>
 				<executions>
 					<execution>
 						<id>test</id>
