@@ -7,11 +7,9 @@ on:
 
 jobs:
   deploy:
-
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -30,7 +28,7 @@ jobs:
         run: |
           mkdir -p ~/.m2
 
-          cat <<EOF > ~/.m2/settings.xml
+          cat > ~/.m2/settings.xml << EOF
           <settings>
             <servers>
               <server>
@@ -42,14 +40,17 @@ jobs:
           </settings>
           EOF
 
-      - name: Deploy to CloudHub 2.0
+      - name: Validate Build
+        run: mvn clean package -DskipTests
+
+      - name: Deploy CH2
         run: |
-          mvn clean deploy \
-          -DskipTests \
-          -Ddeploy.environment=${{ vars.CH2_ENVIRONMENT }} \
-          -Ddeploy.target=${{ vars.CH2_TARGET }} \
-          -Ddeploy.clientId=${{ secrets.CH2_CLIENT_ID }} \
-          -Ddeploy.clientSecret=${{ secrets.CH2_CLIENT_SECRET }} \
-          -Dplatform.clientId=${{ secrets.ANYPOINT_PLATFORM_CLIENT_ID }} \
-          -Dplatform.clientSecret=${{ secrets.ANYPOINT_PLATFORM_CLIENT_SECRET }} \
-          -Dsecure.key=${{ secrets.MULE_SECURE_KEY }}
+          mvn deploy \
+            -DmuleDeploy \
+            -Ddeploy.environment=${{ vars.CH2_ENVIRONMENT }} \
+            -Ddeploy.target=${{ vars.CH2_TARGET }} \
+            -Ddeploy.clientId=${{ secrets.CH2_CLIENT_ID }} \
+            -Ddeploy.clientSecret=${{ secrets.CH2_CLIENT_SECRET }} \
+            -Dplatform.clientId=${{ secrets.ANYPOINT_PLATFORM_CLIENT_ID }} \
+            -Dplatform.clientSecret=${{ secrets.ANYPOINT_PLATFORM_CLIENT_SECRET }} \
+            -Dsecure.key=${{ secrets.MULE_SECURE_KEY }}
