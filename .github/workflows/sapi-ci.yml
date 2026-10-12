@@ -34,11 +34,11 @@ jobs:
       - name: Check Maven version
         run: mvn -version
 
+      
       - name: Build and run MUnit tests
         run: mvn -B clean verify
         env:
           ANYPOINT_MAVEN_USERNAME: "~~~Client~~~"
           ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
           MAVEN_OPTS: -Xmx2048m
-          JDK_JAVA_OPTIONS: >-
-            --add-opens=java.naming/javax.naming=ALL-UNNAMED
+
