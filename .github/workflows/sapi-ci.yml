@@ -16,14 +16,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+    
+      - name: Set up Java 17 and Maven authentication
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
           cache: maven
+          server-id: anypoint-exchange-v3
+          server-username: ANYPOINT_MAVEN_USERNAME
+          server-password: ANYPOINT_MAVEN_PASSWORD
 
+
+     
       - name: Build and run MUnit tests
         run: mvn -B clean verify
         env:
+          ANYPOINT_MAVEN_USERNAME: "~~~Client~~~"
+          ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
           MAVEN_OPTS: -Xmx2048m
+
