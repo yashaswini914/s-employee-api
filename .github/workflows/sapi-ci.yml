@@ -16,28 +16,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-    
-      
-      - name: Build and run MUnit tests
-        run: mvn -B clean verify
-        env:
-          ANYPOINT_MAVEN_USERNAME: "~~~Client~~~"
-          ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
-          MAVEN_OPTS: >-
-            -Xmx2048m
-            --add-opens=java.naming/javax.naming=ALL-UNNAMED
-          JDK_JAVA_OPTIONS: >-
-            --add-opens=java.naming/javax.naming=ALL-UNNAMED
+      - name: Set up Java 17 and Maven authentication
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          server-id: anypoint-exchange-v3
+          server-username: ANYPOINT_MAVEN_USERNAME
+          server-password: ANYPOINT_MAVEN_PASSWORD
 
-     
       - name: Set up Maven 3.9.9
         uses: stCarolas/setup-maven@v5
         with:
           maven-version: '3.9.9'
-
-
-
-     
 
       - name: Check Maven version
         run: mvn -version
@@ -48,5 +40,5 @@ jobs:
           ANYPOINT_MAVEN_USERNAME: "~~~Client~~~"
           ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
           MAVEN_OPTS: -Xmx2048m
-
-       
+          JDK_JAVA_OPTIONS: >-
+            --add-opens=java.naming/javax.naming=ALL-UNNAMED
