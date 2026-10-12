@@ -71,6 +71,7 @@ jobs:
           path: target/*-mule-application.jar
           if-no-files-found: error
 
+  
   cd:
     name: Deploy SAPI to CloudHub 2.0
     needs: ci
@@ -102,40 +103,6 @@ jobs:
           name: sapi-application
           path: target
 
-      - name: Verify Anypoint Connected App access
-        shell: bash
-        env:
-          CH2_CLIENT_ID: ${{ secrets.CH2_CLIENT_ID }}
-          CH2_CLIENT_SECRET: ${{ secrets.CH2_CLIENT_SECRET }}
-        run: |
-          set -euo pipefail
-
-          TOKEN_RESPONSE=$(curl -fsS \
-            -X POST "https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            --data-urlencode "grant_type=client_credentials" \
-            --data-urlencode "client_id=$CH2_CLIENT_ID" \
-            --data-urlencode "client_secret=$CH2_CLIENT_SECRET")
-
-          TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token // empty')
-          test -n "$TOKEN" || { echo "::error::Token not returned"; exit 1; }
-          echo "::add-mask::$TOKEN"
-
-          HTTP_STATUS=$(curl -sS -o /tmp/environments.json -w "%{http_code}" \
-            -H "Authorization: Bearer $TOKEN" \
-            "https://anypoint.mulesoft.com/accounts/api/environments")
-
-          echo "Environment API HTTP status: $HTTP_STATUS"
-
-          if [[ "$HTTP_STATUS" != "200" ]]; then
-            echo "::error::Connected App cannot retrieve environments"
-            exit 1
-          fi
-
-          jq '[.data[]? | {name, id, organizationId}]' /tmp/environments.json
-
-
-     
       - name: Deploy to CloudHub 2.0
         shell: bash
         env:
@@ -147,33 +114,34 @@ jobs:
           CH2_TARGET: ${{ vars.CH2_TARGET }}
           CH2_ENVIRONMENT: ${{ vars.CH2_ENVIRONMENT }}
 
-        
         run: |
           set -euo pipefail
 
-          TOKEN_RESPONSE=$(curl -fsS \
-            -X POST "https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            --data-urlencode "grant_type=client_credentials" \
-            --data-urlencode "client_id=$CH2_CLIENT_ID" \
-            --data-urlencode "client_secret=$CH2_CLIENT_SECRET")
+          for name in CH2_CLIENT_ID CH2_CLIENT_SECRET MULE_SECURE_KEY CH2_TARGET CH2_ENVIRONMENT; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::$name is missing or empty"
+              exit 1
+            fi
+          done
 
-          TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token // empty')
-          test -n "$TOKEN" || { echo "::error::Token not returned"; exit 1; }
-          echo "::add-mask::$TOKEN"
+          ARTIFACT="$(find target -maxdepth 1 -type f -name '*-mule-application.jar' -print -quit)"
 
-          ORG_ID="REPLACE_WITH_YOUR_TEK_BUSINESS_GROUP_UUID"
-
-          HTTP_STATUS=$(curl -sS -o /tmp/environments.json -w "%{http_code}" \
-            -H "Authorization: Bearer $TOKEN" \
-            "https://anypoint.mulesoft.com/accounts/api/cs/organizations/$ORG_ID/environments")
-
-          echo "Environment API HTTP status: $HTTP_STATUS"
-
-          if [[ "$HTTP_STATUS" != "200" ]]; then
-            echo "::error::Environment lookup failed with HTTP $HTTP_STATUS"
+          if [[ -z "$ARTIFACT" ]]; then
+            echo "::error::Mule application JAR not found"
+            ls -la target
             exit 1
           fi
 
-          jq 'if type == "array" then . else (.data // .environments // []) end | map({name, id, organizationId})' /tmp/environments.json
+          echo "Environment: $CH2_ENVIRONMENT"
+          echo "Target: $CH2_TARGET"
+          echo "Application artifact: $ARTIFACT"
+          echo "Starting CloudHub 2.0 deployment..."
+
+          mvn -B mule:deploy \
+            -Dmule.artifact="$GITHUB_WORKSPACE/$ARTIFACT" \
+            -Ddeploy.environment="$CH2_ENVIRONMENT" \
+            -Ddeploy.target="$CH2_TARGET" \
+            -Ddeploy.clientId="$CH2_CLIENT_ID" \
+            -Ddeploy.clientSecret="$CH2_CLIENT_SECRET" \
+            -Dsecure.key="$MULE_SECURE_KEY"
 
