@@ -9,6 +9,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      ANYPOINT_MAVEN_USERNAME: ${{ secrets.ANYPOINT_CLIENT_ID }}
+      ANYPOINT_MAVEN_PASSWORD: ${{ secrets.ANYPOINT_CLIENT_SECRET }}
+      MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
+      MAVEN_OPTS: -Xmx2048m
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -24,7 +30,7 @@ jobs:
           mkdir -p src/main/resources
           echo "${{ secrets.MULE_SECURE_YAML }}" > src/main/resources/secure.yaml
 
-      - name: Configure Maven Settings
+      - name: Create Maven Settings
         run: |
           mkdir -p ~/.m2
 
@@ -33,24 +39,14 @@ jobs:
             <servers>
               <server>
                 <id>anypoint-exchange-v3</id>
-                <username>${{ secrets.ANYPOINT_CLIENT_ID }}</username>
-                <password>${{ secrets.ANYPOINT_CLIENT_SECRET }}</password>
+                <username>${ANYPOINT_MAVEN_USERNAME}</username>
+                <password>${ANYPOINT_MAVEN_PASSWORD}</password>
               </server>
             </servers>
           </settings>
           EOF
 
       - name: Validate Build
-        run: mvn clean package -DskipTests
-
-      - name: Deploy CH2
         run: |
-          mvn deploy \
-            -DmuleDeploy \
-            -Ddeploy.environment=${{ vars.CH2_ENVIRONMENT }} \
-            -Ddeploy.target=${{ vars.CH2_TARGET }} \
-            -Ddeploy.clientId=${{ secrets.CH2_CLIENT_ID }} \
-            -Ddeploy.clientSecret=${{ secrets.CH2_CLIENT_SECRET }} \
-            -Dplatform.clientId=${{ secrets.ANYPOINT_PLATFORM_CLIENT_ID }} \
-            -Dplatform.clientSecret=${{ secrets.ANYPOINT_PLATFORM_CLIENT_SECRET }} \
-            -Dsecure.key=${{ secrets.MULE_SECURE_KEY }}
+          mvn -B clean verify \
+            -Dsecure.key==${{ secrets.MULE_SECURE_KEY }}
