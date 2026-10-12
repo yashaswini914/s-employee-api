@@ -12,7 +12,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <app.runtime>4.12.4</app.runtime>
+        <app.runtime>4.12.2</app.runtime>
         <mule.maven.plugin.version>4.10.1</mule.maven.plugin.version>
         <employee-api.version>1.0.1</employee-api.version>
         <munit.version>3.6.3</munit.version>
@@ -79,11 +79,12 @@
                             <http.port>8081</http.port>
                             <anypoint.platform.client_id>${platform.clientId}</anypoint.platform.client_id>
                         </properties>
-                        <secureProperties>
-                            <secure.key>${secure.key}</secure.key>
-                            <anypoint.platform.client_secret>${platform.clientSecret}</anypoint.platform.client_secret>
-                            <anypoint.platform.client_secret>${platform.clientSecret}</anypoint.platform.client_secret>
-                        </secureProperties>
+                        
+<secureProperties>
+    <anypoint.platform.client_id>${anypoint.platform.client.id}</anypoint.platform.client_id>
+    <anypoint.platform.client_secret>${anypoint.platform.client.secret}</anypoint.platform.client_secret>
+    <mule.key>${mule.key}</mule.key>
+</secureProperties>
                     </cloudhub2Deployment>
                 </configuration>
             </plugin>
@@ -155,29 +156,38 @@
         </dependency>
     </dependencies>
 
-    <distributionManagement>
-        <repository>
-            <id>anypoint-exchange-v3</id>
-            <name>Anypoint Exchange Maven Repository</name>
-            <url>https://maven.anypoint.mulesoft.com/api/v3/organizations/64bf67c7-37b5-45e5-a0ea-95fa6c0a7682/maven</url>
-            <layout>default</layout>
-        </repository>
-    </distributionManagement>
+<distributionManagement>
+    <repository>
+        <id>anypoint-exchange-v3</id>
+        <name>Anypoint Exchange Maven Repository</name>
+        <url>
+            https://maven.anypoint.mulesoft.com/api/v3/organizations/64bf67c7-37b5-45e5-a0ea-95fa6c0a7682/maven
+        </url>
+    </repository>
+</distributionManagement>
 
     <repositories>
-        <repository>
-            <id>anypoint-exchange-v3</id>
-            <name>Anypoint Exchange Maven Repository</name>
-            <url>https://maven.anypoint.mulesoft.com/api/v3/organizations/64bf67c7-37b5-45e5-a0ea-95fa6c0a7682/maven</url>
-            <layout>default</layout>
-        </repository>
-        <repository>
-            <id>mulesoft-releases</id>
-            <name>MuleSoft Releases Repository</name>
-            <url>https://repository.mulesoft.org/nexus/repository/releases/</url>
-            <layout>default</layout>
-        </repository>
-    </repositories>
+    <repository>
+        <id>anypoint-exchange-v3</id>
+        <name>Anypoint Exchange</name>
+        <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
+        <layout>default</layout>
+        <releases>
+            <enabled>true</enabled>
+        </releases>
+        <snapshots>
+            <enabled>false</enabled>
+        </snapshots>
+    </repository>
+
+    <repository>
+        <id>mulesoft-releases</id>
+        <name>MuleSoft Releases Repository</name>
+        <url>https://repository.mulesoft.org/nexus/repository/releases/</url>
+        <layout>default</layout>
+    </repository>
+</repositories>
+
 
     <pluginRepositories>
         <pluginRepository>
