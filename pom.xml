@@ -78,10 +78,19 @@
             <connectedAppClientSecret>${deploy.clientSecret}</connectedAppClientSecret>
             <connectedAppGrantType>client_credentials</connectedAppGrantType>
 
-            <properties>
-                <api.id>21230619</api.id>
-                <http.port>8081</http.port>
-            </properties>
+
+            
+<properties>
+    <api.id>21230619</api.id>
+    <http.port>8081</http.port>
+    <anypoint.platform.client_id>${platform.clientId}</anypoint.platform.client_id>
+</properties>
+
+<secureProperties>
+    <secure.key>${secure.key}</secure.key>
+    <anypoint.platform.client_secret>${platform.clientSecret}</anypoint.platform.client_secret>
+</secureProperties>
+            
 
             <secureProperties>
                 <secure.key>${secure.key}</secure.key>

@@ -135,6 +135,9 @@ jobs:
           MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
           CH2_TARGET: ${{ vars.CH2_TARGET }}
           CH2_ENVIRONMENT: ${{ vars.CH2_ENVIRONMENT }}
+          ANYPOINT_PLATFORM_CLIENT_ID: ${{ secrets.ANYPOINT_PLATFORM_CLIENT_ID }}
+          ANYPOINT_PLATFORM_CLIENT_SECRET: ${{ secrets.ANYPOINT_PLATFORM_CLIENT_SECRET }}
+
 
         run: |
           set -euo pipefail
@@ -166,4 +169,8 @@ jobs:
             -Ddeploy.clientId="$CH2_CLIENT_ID" \
             -Ddeploy.clientSecret="$CH2_CLIENT_SECRET" \
             -Dsecure.key="$MULE_SECURE_KEY"
+            -Dplatform.clientId="$ANYPOINT_PLATFORM_CLIENT_ID" \
+            -Dplatform.clientSecret="$ANYPOINT_PLATFORM_CLIENT_SECRET" \
+            -Dsecure.key="$MULE_SECURE_KEY"
+
 
