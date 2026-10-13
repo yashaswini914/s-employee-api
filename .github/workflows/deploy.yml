@@ -1,52 +1,122 @@
-name: Deploy S-Employee API
+
+name: System API CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  build-and-test:
     runs-on: ubuntu-latest
 
-    env:
-      ANYPOINT_MAVEN_USERNAME: ${{ secrets.ANYPOINT_CLIENT_ID }}
-      ANYPOINT_MAVEN_PASSWORD: ${{ secrets.ANYPOINT_CLIENT_SECRET }}
-      MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
-      MAVEN_OPTS: -Xmx2048m
-
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Set up Java 17 and Maven authentication
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: '17'
+          cache: maven
+          server-id: anypoint-exchange-v3
+          server-username: ANYPOINT_MAVEN_USERNAME
+          server-password: ANYPOINT_MAVEN_PASSWORD
 
-      - name: Create Secure Properties File
+      - name: Set up Maven 3.9.9
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: '3.9.9'
+
+      - name: Check Maven version
+        run: mvn -version
+
+      - name: Restore secure properties file
+        env:
+          MULE_SECURE_YAML: ${{ secrets.MULE_SECURE_YAML }}
         run: |
-          mkdir -p src/main/resources
-          echo "${{ secrets.MULE_SECURE_YAML }}" > src/main/resources/secure.yaml
+          mkdir -p src/main/resources/properties
+          if [ -z "$MULE_SECURE_YAML" ]; then
+            echo "MULE_SECURE_YAML secret is empty or unavailable"
+            exit 1
+          fi
+          printf '%s\n' "$MULE_SECURE_YAML" > src/main/resources/properties/secure.yaml
 
-      - name: Create Maven Settings
+      - name: Install PyYAML
+        run: python -m pip install PyYAML
+
+      - name: Validate secure YAML
         run: |
-          mkdir -p ~/.m2
+          python - <<'PY'
+          import yaml
+          path = "src/main/resources/properties/secure.yaml"
+          with open(path, encoding="utf-8") as f:
+              data = yaml.safe_load(f)
+          assert isinstance(data, dict), "Secure YAML must contain a mapping"
+          print("Secure YAML syntax is valid")
+          PY
 
-          cat > ~/.m2/settings.xml << EOF
-          <settings>
-            <servers>
-              <server>
-                <id>anypoint-exchange-v3</id>
-                <username>${ANYPOINT_MAVEN_USERNAME}</username>
-                <password>${ANYPOINT_MAVEN_PASSWORD}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
+      - name: Build and run MUnit tests
+        run: mvn -B clean verify -Dsecure.key="$MULE_SECURE_KEY"
+        env:
+          ANYPOINT_MAVEN_USERNAME: "~~~Client~~~"
+          ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
+          MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
+          MAVEN_OPTS: -Xmx2048m
 
-      - name: Validate Build
+name: System API CD
+
+on:
+  workflow_run:
+    workflows: ["System API CI"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17 and Maven authentication
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          server-id: anypoint-exchange-v3
+          server-username: ANYPOINT_MAVEN_USERNAME
+          server-password: ANYPOINT_MAVEN_PASSWORD
+
+      - name: Set up Maven 3.9.9
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: '3.9.9'
+
+      - name: Restore secure properties file
+        env:
+          MULE_SECURE_YAML: ${{ secrets.MULE_SECURE_YAML }}
         run: |
-          mvn -B clean verify \
-            -Dsecure.key==${{ secrets.MULE_SECURE_KEY }}
+          mkdir -p src/main/resources/properties
+          printf '%s\n' "$MULE_SECURE_YAML" > src/main/resources/properties/secure.yaml
+
+      - name: Deploy to CloudHub 2.0
+        run: |
+          mvn -U deploy -DmuleDeploy \
+            -Ddeploy.environment=${{ vars.CH2_ENVIRONMENT }} \
+            -Ddeploy.target=${{ vars.CH2_TARGET }} \
+            -Ddeploy.clientId=${{ secrets.CH2_CLIENT_ID }} \
+            -Ddeploy.clientSecret=${{ secrets.CH2_CLIENT_SECRET }} \
+            -Dplatform.clientId=${{ secrets.ANYPOINT_PLATFORM_CLIENT_ID }} \
+            -Dplatform.clientSecret=${{ secrets.ANYPOINT_PLATFORM_CLIENT_SECRET }} \
+            -Dsecure.key=${{ secrets.MULE_SECURE_KEY }}
+        env:
+          ANYPOINT_MAVEN_USERNAME: "~~~Client~~~"
+          ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
+          MAVEN_OPTS: -Xmx2048m
