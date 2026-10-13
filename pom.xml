@@ -78,13 +78,14 @@
                             <api.id>21230619</api.id>
                             <http.port>8081</http.port>
                             <anypoint.platform.client_id>${platform.clientId}</anypoint.platform.client_id>
+                            <secure.key>${secure.key}</secure.key>
                         </properties>
                         
 <secureProperties>
     <anypoint.platform.client_id>${anypoint.platform.client.id}</anypoint.platform.client_id>
     <anypoint.platform.client_secret>${anypoint.platform.client.secret}</anypoint.platform.client_secret>
     <mule.key>${mule.key}</mule.key>
-    <secure.key>${secure.key}</secure.key>
+
 </secureProperties>
                     </cloudhub2Deployment>
                 </configuration>
