@@ -50,4 +50,5 @@ jobs:
         env:
           ANYPOINT_MAVEN_USERNAME: "~~~Client~~~"
           ANYPOINT_MAVEN_PASSWORD: "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
+          MULE_SECURE_KEY: ${{ secrets.MULE_SECURE_KEY }}
           MAVEN_OPTS: -Xmx2048m
